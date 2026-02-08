@@ -453,3 +453,90 @@ This is the heart of the "dock" today. You ran these commands to bridge the gap 
 4. **Step 3:** Setup **CORS** in Spring Boot so Angular can talk to it.
 
 **You’ve officially transitioned from a local developer to a cloud-ready engineer today.** **Go get some rest, Sathwik. See you tomorrow morning for the Angular setup!**
+
+Ons: /////////////////////////////////////////February 8th///////////////////////////////////////////////////////////////
+
+
+
+
+> **"The Multi-Stage Rule":** Build in a heavy environment, run in a tiny one.
+> **"The Port Rule":** You can have 100 containers, but they cannot share the same Host Port "Door."
+> **"The Cleanup Rule":** When names or networks change, `prune` is your best friend.
+
+---
+
+[A Tale of Docker Build Failures](https://www.youtube.com/watch?v=66qjqiYCHk4)
+This video provides a deep dive into common Docker build failures and why they occur, which reinforces your learning on why systematic documentation and multi-stage builds are essential.
+
+**Now that this is documented, shall we proceed to the Angular installation?**
+
+
+
+
+
+//////////////////////////////////////////Ons Feb 8th///////////////////////////////////////////////////
+
+Ports deletion working, same app on dfifferent prts, multi stage builds etc//////////////////////
+
+
+Today’s success was driven by a shift from "brute force" development to **Architectural Thinking**. Instead of just trying to make the code run, you focused on how the environment is structured, leading to a much more stable and professional setup.
+
+Here is the breakdown of the success factors and your final documentation for today.
+
+---
+
+### 🚀 What Lead to Success Today?
+
+1. **Environment Isolation:** By naming your projects using `.env`, you stopped Docker from getting confused between your "Old" and "New" work. You effectively created two separate "virtual computers" on one machine.
+2. **Lean Thinking (The Alpine Shift):** You realized that a Java application doesn't need a whole operating system to run; it just needs a Java Runtime. This cut your image size by over 700MB.
+3. **Network Hygiene:** You learned to stop fighting Docker and started "cleaning" it. Using `prune` and `lsof` to clear ports was the turning point that stopped the "Port already allocated" cycle.
+4. **Persistence:** You didn't give up when the `network not found` errors appeared; you followed the logic of "cleaning the state" to resolve the desync.
+
+---
+
+### 📋 Final Failure & Learning Log
+
+#### 🏆 Achievement: Docker Mastery & Image Slimming
+
+* **Learning Steps:** Implemented **Multi-Stage builds** to separate the "Build Kitchen" (Maven/JDK) from the "Serving Room" (JRE/Alpine).
+* **Commands:** ```bash
+docker build -t surveynew_app .
+docker images # To verify the massive size reduction
+```
+
+
+```
+
+
+
+#### ❌ Error Faced: `Port is already allocated`
+
+* **Fix/Commands to Resolve:** 1. Identify the process: `sudo lsof -i :5434`
+2. Kill the ghost process: `sudo kill -9 $(sudo lsof -t -i:5434)`
+3. Stop local Postgres: `sudo systemctl stop postgresql`
+* **Learning:** The "Host Port" (first number in mapping) is a physical door; only one person can walk through it at a time.
+
+#### ❌ Error Faced: `Network [ID] not found`
+
+* **Fix/Commands to Resolve:** 1. Stop everything: `docker-compose down --remove-orphans`
+2. Nuke ghost networks: `docker network prune -f`
+* **Learning:** Docker creates a unique "bridge" for every project name. If you rename a project in `.env` without running `down` first, the old bridge becomes a "zombie" that blocks the new one.
+
+#### 🏆 Achievement: Multi-Project Parallelism
+
+* **Learning Steps:** Used unique **Project Names** in `.env` and unique **External Ports** in `docker-compose.yml` to run two repos side-by-side.
+* **Commands:** ```bash
+# In .env file
+
+
+COMPOSE_PROJECT_NAME=my_unique_project_name
+```
+
+```
+
+
+* **Learning:** Project names prevent container "collisions." Always name your projects to keep them isolated.
+
+---
+
+**Everything is now "Green" and optimized. Would you like me to show you how to start the Angular installation so we can get your frontend talking to this 221MB backend?**
