@@ -1,0 +1,33 @@
+version: '2'
+
+services:
+  db:
+    image: postgres:15
+    security_opt:
+      - seccomp:unconfined
+    environment:
+      POSTGRES_USER: sathwik
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: surveydb
+    ports:
+      - "5433:5432"
+    # --- ADD THIS SECTION ---
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  app:
+    build: .
+    ports:
+      - "8085:8080"
+    depends_on:
+      - db
+    restart: on-failure
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/surveydb
+      SPRING_DATASOURCE_USERNAME: sathwik
+      SPRING_DATASOURCE_PASSWORD: password123
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+
+# --- AND ADD THIS AT THE VERY BOTTOM ---
+volumes:
+  postgres_data:

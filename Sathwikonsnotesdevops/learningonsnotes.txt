@@ -1,0 +1,614 @@
+Ons:
+
+Learnings from 31st/1st work:
+
+Understanding the **failures** is actually the secret to becoming a senior developer. Here is the breakdown of the specific "failure commands" we tried, what they taught us, and the "why" behind their collapse.
+
+---
+
+### 1. The "Default Build" Failure
+
+**The Command:** `docker build -t my-web-app .`
+
+* **Why it failed:** Initially, the **Docker Daemon** was not responding. Even when the daemon started, the build failed because it couldn't find the `maven` image due to registry pull limits (the "login" error).
+* **The Lesson:** A `Dockerfile` is just a script; if the background service (Daemon) or the source (Registry) is down, the script is useless.
+
+### 2. The "Anonymous Pull" Failure
+
+**The Error:**
+`to show you may need docker login`
+
+* **Why it failed:** Docker Hub has a "rate limit." Because we were trying to pull the Maven image without being logged in, Docker's servers basically said, "Too many requests from this IP, go away."
+* **The Lesson:** Always have a "Plan B" registry (like Amazon ECR) that doesn't have the same strict limits as Docker Hub for common images.
+
+### 3. The "Missing Dependency" Failure
+
+**The Error:**
+`package junit.framework does not exist`
+
+* **Why it failed:** You were running a command like `mvn spring-boot:run`, but your `pom.xml` was empty or using the wrong version of JUnit. Maven tried to compile your test files, looked for the JUnit library, and found nothing.
+* **The Lesson:** Maven doesn't "know" how to test or run things automatically; it only knows what you tell it in the `pom.xml`. If it's not in the XML, it doesn't exist to Java.
+
+### 4. The "Java Path" Failure
+
+**The Command:**
+`docker run ... java -jar app.jar` (or similar)
+**The Error:**
+`java: command not found` or `path error`
+
+* **Why it failed:** We were trying to run Java commands inside a container that didn't have the Java "environment variables" set up correctly in the `$PATH`.
+* **The Lesson:** Just because Java is installed doesn't mean the computer knows where it is. Using a **pre-configured Maven image** (`amazoncorretto`) was the fix because Amazon already set the paths for us.
+
+---
+
+### 5. Summary of Key Differences
+
+| Failed Command Style | Successful Command Style | The "Why" |
+| --- | --- | --- |
+| `docker build` | `docker run -v` | **Building** takes time; **Mounting (-v)** lets you test code instantly. |
+| `docker login` | `public.ecr.aws/...` | **Login** is a hurdle; **Public Mirrors** are a shortcut. |
+| `mvn test` (without pom) | `mvn clean test` (with pom) | **Clean** ensures no "ghost errors" from previous failed builds remain. |
+
+### Your "Success Formula"
+
+You learned that for a Java app to work in Docker, four things must match perfectly:
+
+1. **The Daemon** must be awake (`systemctl start docker`).
+2. **The Registry** must be reachable (`public.ecr.aws`).
+3. **The pom.xml** must have the right libraries (`junit 4.13.2`).
+4. **The Port** must be open (`-p 8080:8080`).
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Why we changed from eclipse temurin image to public aws ecr? and what we acheived to build an api sending response without installig maven and java locally?
+
+The shift from your initial **Eclipse/Docker Hub** approach to the **AWS ECR** method was the difference between "hitting a wall" and "opening a door."
+
+Here is the summary of why that change was necessary and how it transformed your development experience.
+
+---
+
+### 1. The "Why": Registry Barriers
+
+Initially, you were pulling from **Docker Hub** (the default source). In recent years, Docker Hub introduced strict limits that often block learners.
+
+* **The Eclipse/Maven Image Problem:** When you tried to pull standard images like `maven` or `eclipse-temurin`, you hit the **Rate Limit**. Docker Hub saw too many "anonymous" requests from your network and demanded a `docker login`.
+* **The AWS ECR Advantage:** Amazon provides a **Public Gallery** that hosts the same official Docker images (including Maven) but without the same aggressive throttling. By switching to `public.ecr.aws`, you bypassed the "Login Required" wall entirely.
+
+---
+
+### 2. The Functional Difference
+
+The move didn't just fix a login error; it changed the "engine" your app was running on.
+
+| Feature | Initial Way (Eclipse/Docker Hub) | New Way (AWS ECR / Corretto) |
+| --- | --- | --- |
+| **Authentication** | Required `docker login` (failed). | **No login needed** for public pulls. |
+| **Java Flavor** | Standard OpenJDK/Eclipse Temurin. | **Amazon Corretto** (AWS-optimized Java). |
+| **Stability** | Subject to Docker Hub "Pull Limits." | **High Availability** (distributed across AWS). |
+| **Execution** | Tried to `build` a fresh image first. | Used **direct run** with volume mounting. |
+
+---
+
+### 3. What Difference it Made for Your App
+
+The transition made the project **interactive** instead of **static**.
+
+* **Zero-Wait Development:** By using the AWS image in a `docker run` command with a **volume mount** (`-v`), you stopped waiting for a 5-minute "build" every time you fixed a typo. The container now "sees" your laptop's files in real-time.
+* **Resolved the "JUnit Framework" Error:** The `eclipse-temurin` images are often "slim" (minimal), meaning they lack some of the environment settings or Maven caches that older tutorials expect. The `amazoncorretto` Maven image provided a more "complete" environment that was more compatible with your `pom.xml` changes.
+* **Tunneling Success:** The change included the `-p 8080:8080` mapping. Initially, the app might have been "running" in the dark, but this new workflow ensured that when the app started, a "tunnel" was already open for your browser to see it.
+
+---
+
+### Summary for your "Dock" Memory
+
+When you recall this tomorrow, remember:
+
+> We moved from **Docker Hub (Standard)** to **AWS ECR (Public)** to stop the login errors, and we switched from **Building** to **Mounting** so your changes show up instantly at `localhost:8080`.
+
+**Now that the app is running and your workflow is documented, would you like me to show you how to add a second "Page" to your Java code so you can practice updating the app live?**
+
+
+
+
+
+
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+// Scaerios learnt for Dockerfile, Docker image creation, Docker container running port 
+It’s "dock" day! Since we are focusing strictly on your Docker evolution, let’s look at how you moved from a "Manual Operator" to a "Docker Developer."
+
+You transitioned from running complex, one-off commands to building a repeatable, professional **Dockerfile** architecture. Here is the detailed breakdown of that journey.
+
+---
+
+## 1. The "Manual Operator" Phase (Long Commands)
+
+Initially, you were using the **Volume Mount** method. This was your breakthrough for active development because it allowed your laptop and the container to share the same brain.
+
+**The Master Command:**
+
+```bash
+docker run -it --rm \
+  -p 8080:8080 \
+  -v "/home/shravya/onsathwiklearning":/app \
+  -w /app \
+  public.ecr.aws/docker/library/maven:3.9.6-amazoncorretto-17 \
+  mvn clean spring-boot:run
+
+```
+
+* **Why it worked:** It bypassed the "Docker Hub Login" error by using the **AWS ECR mirror**.
+* **The Difference:** You didn't have to "install" Java or Maven on your Ubuntu machine; you just "borrowed" them from the image.
+
+---
+
+## 2. The "Developer" Phase (The Dockerfile)
+
+You realized that long commands are hard to remember and share. So, you created a **Dockerfile**. This is a "recipe" that tells Docker how to bake your app into a self-contained image.
+
+### How you wrote the Dockerfile:
+
+You used a **Multi-Stage Build**, which is the "Gold Standard" for medium-scale apps.
+
+**The Logic you implemented:**
+
+1. **Stage 1 (The Builder):** You used a heavy image with Maven to compile the code.
+2. **Stage 2 (The Runner):** You copied *only* the finished `.jar` file into a tiny, lightweight Java image.
+
+**Your Successful Dockerfile Structure:**
+
+```dockerfile
+# Step 1: Use Maven to build the code
+FROM public.ecr.aws/docker/library/maven:3.9.6-amazoncorretto-17 AS builder
+WORKDIR /app
+COPY . .
+RUN mvn clean package -DskipTests
+
+# Step 2: Use a clean Java runtime for the final app
+FROM public.ecr.aws/amazoncorretto/amazoncorretto:17-al2-jdk
+WORKDIR /app
+COPY --from=builder /app/target/*.jar app.jar
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "app.jar"]
+
+```
+
+---
+
+## 3. Solving the "Internet Blackout" (The Network Fix)
+
+During your `docker build`, you hit a "Temporary failure in name resolution" error. This happened because the container couldn't reach Maven Central.
+
+**Your Success Fix:**
+You used the host’s internet connection directly during the build process:
+
+```bash
+docker build --network=host -t onsathwiklearning:v2 .
+
+```
+
+* **The Difference:** This allowed the Docker "Builder" to use your Ubuntu machine's DNS settings, letting the downloads succeed.
+
+---
+
+## 4. Operational Commands (Running & Monitoring)
+
+Once the image was built, you moved to **Detached Mode** and **Logging** to manage the app like a real server.
+
+**To Run the App in the background:**
+
+```bash
+docker run -d -p 8080:8080 --name my-app-v2 onsathwiklearning:v2
+
+```
+
+**To Verify the App (The Logs):**
+You used this to see the Spring Boot startup banner and check if your new `/status` and `/hello` endpoints were loaded correctly:
+
+```bash
+docker logs -f my-app-v2
+
+```
+
+---
+
+## 5. Summary of Your "Success Secrets"
+
+| Problem Encountered | Docker Tool You Used to Fix It |
+| --- | --- |
+| **Login/Auth Errors** | Switched to `public.ecr.aws` images. |
+| **DNS/Internet Errors** | Used `--network=host` during the build. |
+| **Heavy/Slow Images** | Implemented **Multi-Stage Builds**. |
+| **Port Conflicts** | Used `docker stop` and mapped `-p 8080:8080`. |
+| **Debugging Changes** | Used `docker logs -f` to watch the app live. |
+
+### Real-World Connection
+
+In a medium-scale application, what you did today is exactly how "Staging Environments" work. You created an **Immutable Image** (v2). If you want to change the code again, you won't edit the container; you will build **v3**. This ensures that what you test is exactly what the user sees.
+
+**Since you've mastered building and running, would you like to try "Docker Compose"?** It allows you to replace all these commands with a single `docker-compose up` command.
+
+
+///////////////////////////////5th February Ons/////////////////////////////////////////////////
+
+Today was a masterclass in **troubleshooting the Docker ecosystem**. Every "Failure" you hit is a standard industry rite of passage. Here are the specific failure-based learnings from your session:
+
+---
+
+### ❌ Failure 1: The "Internet Blackout" (DNS Failure)
+
+* **The Error:** `Temporary failure in name resolution` during `mvn package`.
+* **The Lesson:** Docker containers are isolated by design. By default, they use a "Bridge" network that sometimes fails to inherit your laptop's DNS settings.
+* **The Developer Fix:** You learned that **`--network=host`** is a powerful "escape hatch" that lets the container use your Ubuntu machine's network identity directly to talk to the internet.
+
+### ❌ Failure 2: The "Ghost" Container (Name Conflict)
+
+* **The Error:** `Conflict. The container name "/my-app-v3" is already in use.`
+* **The Lesson:** Docker has a strict "One Name, One Container" policy. Even if a container is stopped and not doing anything, it still "owns" that name in the Docker database.
+* **The Developer Fix:** You learned the "Force Remove" command: **`docker rm -f [name]`**. This effectively evicts the old tenant so your new version can move in.
+
+### ❌ Failure 3: The "Occupied Tunnel" (Port Allocation)
+
+* **The Error:** `Bind for 0.0.
+
+
+//////////////////////////////////////////Ons February 6th learning//////////////////////////////////////////////////////
+
+Major learning ecommerce api to send data updating app java and send the header by curl with name email, rating etc and below failures:
+
+Here is the consolidated log of today's "Battle with the Dock." This format breaks down the **Error**, the **Root Cause (Learning)**, the **Fixing Command**, and the **Strategy** for each hurdle you cleared.
+
+---
+
+## 🛠️ The Docker Troubleshooting Log
+
+### 1. The Port Squatter Error
+
+* **Error:** `Bind for 0.0.0.0:8080 failed: port is already allocated.`
+* **Learning:** Only one process can use a port at a time. If a previous container (or a local Java app) is running, the door is locked.
+* **Commands:** * Find the culprit: `docker ps`
+* Evict the process: `docker rm -f <container_name>`
+
+
+* **Way of Fixing:** Either kill the existing container or use a different **Host Port** (e.g., `-p 8085:8080`).
+
+### 2. The Java Naming Lawsuit
+
+* **Error:** `class SurveyResponse is public, should be declared in a file named SurveyResponse.java`
+* **Learning:** Java is strict. A `public` class must have its own file named exactly like it. In Docker, managing 50 files can be annoying for small tests.
+* **Commands:** (Inside `App.java`)
+* Change: `public class SurveyResponse`  `class SurveyResponse`
+
+
+* **Way of Fixing:** Remove the `public` keyword. This allows the class to live at the bottom of `App.java` as a "sibling," fixing the build without needing extra files.
+
+### 3. The "Ghost Symbol" Error
+
+* **Error:** `[ERROR] ... cannot find symbol: class SurveyResponse`
+* **Learning:** This is a **Scope Error**. If you put the class inside the wrong curly braces `{ }`, the rest of the app can't see it.
+* **Commands:** Move the class definition to the very bottom of the file, **outside** the `public class App { ... }` block.
+* **Way of Fixing:** Ensure the class is in the same "package hallway" (the same file) but its own "room" (outside the main class braces).
+
+### 4. The Syntax Mash-Up
+
+* **Error:** `invalid publish opts format (should be name=value but got '8080docker')`
+* **Learning:** Docker commands are space-sensitive. If you forget a space between the port mapping and the image name, Docker reads it as one giant, nonsensical word.
+* **Commands:** * **Wrong:** `-p 8080:8080survey-app`
+* **Right:** `-p 8080:8080 survey-app`
+
+
+* **Way of Fixing:** Treat terminal commands like sentences. Use **spaces** as punctuation to separate instructions.
+
+### 5. The DNS Blackout
+
+* **Error:** `Temporary failure in name resolution` (During Maven build)
+* **Learning:** Containers are isolated. Sometimes the Docker "Bridge" network fails to talk to your Ubuntu internet settings.
+* **Commands:** `docker build --network=host -t survey-app:v1 .`
+* **Way of Fixing:** Use **`--network=host`**. This forces the container to use your laptop's actual internet identity to download the files it needs.
+
+---
+
+## 🧩 The Design Success (The "Amazon" Milestone)
+
+| Step | Action | Outcome |
+| --- | --- | --- |
+| **API feasibility** | Added `@PostMapping` and `List<SurveyResponse>` | The app can now **receive** data, not just show it. |
+| **Testing** | Used `curl` to send JSON data | Verified that your Docker container can process "E-commerce style" payloads. |
+| **Verification** | Checked `/results` endpoint | Confirmed the data was successfully stored in the container's memory. |
+
+---
+
+### 🧠 Summary for "dock"
+
+Today's biggest failure learning is **Amnesia (Ephemeral Storage)**. You proved the API works, but you saw the data disappear on restart.
+
+**Would you like me to show you the `docker-compose.yml` file now?** This will solve the "Port Allocation" error forever (by automating it) and solve the "Amnesia" error by adding a persistent Database.
+
+
+
+
+//////////////////////////////////February 7th Learning///////////////////////////////////////////////
+
+Entire app ui with UI, DB and Api:
+
+This is your complete **Post-Mortem Report**. It documents the "battle" you fought to get this stack running, the specific code that failed, and the final working configurations.
+
+---
+
+## ❌ The Failures & Fixes Log
+
+| Failure | Symptoms | The Fix |
+| --- | --- | --- |
+| **The Dependency Block** | Maven couldn't download JARs during `docker build`. | Used `--network=host` or verified Ubuntu internet connectivity. |
+| **The "Ghost" 404** | Updated Java code wasn't showing up at `/survey`. | Realized Docker was using a cached image. Fix: `docker-compose up --build`. |
+| **Import Mismatch** | `javax.persistence` vs `jakarta.persistence`. | Swapped imports to match the Spring Boot 2.7/3.x version being used. |
+| **The Race Condition** | App crashed because DB wasn't ready to talk yet. | Added `restart: on-failure` to the `app` service in Compose. |
+| **Amnesia (Data Loss)** | `docker-compose down` wiped all survey results. | Added a named **Volume** to map container data to the Ubuntu disk. |
+| **Port Collision** | Multiple nodes couldn't all use `8085`. | Switched to dynamic ports `8080` for scaling. |
+
+---
+
+## 📄 The Final "Golden" `docker-compose.yml`
+
+This is the stable version that includes **Persistence**, **Security Fixes**, and **Scaling** capabilities.
+
+```yaml
+version: '2'
+
+services:
+  db:
+    image: postgres:15
+    security_opt:
+      - seccomp:unconfined  # Fixes "Operation not permitted" on some Linux kernels
+    environment:
+      POSTGRES_USER: sathwik
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: surveydb
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # Persistence fix!
+
+  app:
+    build: .
+    ports:
+      - "8085:8080"
+    depends_on:
+      - db
+    restart: on-failure  # Connection resilience fix!
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/surveydb
+      SPRING_DATASOURCE_USERNAME: sathwik
+      SPRING_DATASOURCE_PASSWORD: password123
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update # Auto-creates tables fix!
+
+volumes:
+  postgres_data: # The permanent storage "parking lot"
+
+```
+
+---
+
+## ☕ The Final `App.java` (Logic Layer)
+
+You learned that the **Repository** is the bridge to the DB.
+
+```java
+@SpringBootApplication
+@RestController
+public class App {
+    private final SurveyRepository repository;
+
+    public App(SurveyRepository repository) {
+        this.repository = repository;
+    }
+
+    // This hid your index.html! (Learning: Precedence)
+    @GetMapping("/")
+    public String sayHello() {
+        return "Hello Kanna I Love You!";
+    }
+
+    @PostMapping("/survey")
+    public String submitSurvey(@RequestBody SurveyResponse data) {
+        repository.save(data); // SQL INSERT happens here
+        return "Success!";
+    }
+
+    @GetMapping("/survey")
+    public List<SurveyResponse> getResults() {
+        return repository.findAll(); // SQL SELECT happens here
+    }
+}
+
+```
+
+---
+
+## 💾 The Final Learning Method (Step-by-Step)
+
+1. **Develop:** Write Java code and HTML.
+2. **Package:** Create `Dockerfile` (JDK + JAR).
+3. **Orchestrate:** Link services in `docker-compose.yml`.
+4. **Deploy:** `docker-compose up -d --build`.
+5. **Verify (3-Way):** * **UI:** Check `index.html`.
+* **API:** Check `/survey` JSON.
+* **DB:** Run `SELECT *` inside the container via `psql`.
+
+
+
+---
+
+## 📝 For your "dock" summary:
+
+> **Total Success:** You started with a 404 error and ended with a **Persistent Full-Stack Application**. You learned that DevOps isn't just about writing code, it's about managing the **connection** between the code and the data.
+
+**You’ve earned a break! Would you like me to generate a clean "Cheat Sheet" PDF text for you to save on your machine?**
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+0.0:8080 failed: port is already allocated.`
+* **The Lesson:** Ports on your Ubuntu host are like physical doors. Only one application (Docker or otherwise) can be "listening" at that door at a time.
+* **The Developer Fix:** You learned how to verify who is using the port with `docker ps` and how to **map different host ports** (like `8081:8080`) to run multiple versions of the same app simultaneously.
+
+### ❌ Failure 4: The "Stale Code" (Syncing Failure)
+
+* **The Error:** (Implicit) Changing code in your folder but not seeing it in the browser.
+* **The Lesson:** Images are **Immutable**. Once you build an image, the code is "frozen" inside. Simply saving your Java file doesn't update the running image.
+* **The Developer Fix:** You realized you must **rebuild** the image (`docker build`) to "bake" the new code into a new version.
+
+---
+
+### 📊 Summary of Failure vs. Solution
+
+| Failure | Industry Term | The Success Tool |
+| --- | --- | --- |
+| Can't download Maven files | **DNS Resolution Error** | `--network=host` |
+| "Name already in use" | **Namespace Conflict** | `docker rm -f` |
+| "Port already allocated" | **Port Binding Conflict** | Change host port (e.g., `8081:8080`) |
+| Code changes not showing | **Image Immutability** | Rebuild with a new tag (v2, v3) |
+
+---
+
+### 🧠 The "dock" Takeaway
+
+In a real-world project, these failures are exactly why teams use **CI/CD pipelines**. Instead of a human getting these errors, a script handles the `rm -f`, the `build`, and the `run` automatically. You've now manually felt the pain that these automation tools were built to solve!
+
+**Since you've mastered these manual fixes, would you like me to show you the `docker system prune` command?** It’s the "Magic Eraser" that cleans up all these failed attempts and conflicting names in one go.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
