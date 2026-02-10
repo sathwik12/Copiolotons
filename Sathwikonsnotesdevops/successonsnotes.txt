@@ -624,3 +624,36 @@ docker exec survey_new-app-1 whoami
 ```
 
 **Next Step for you:** Since the infrastructure is now perfect, would you like me to generate a **Maintenance Script** (`cleanup.sh`) that you can run once a week to clear out old logs and unused images to keep your Ubuntu disk space healthy?
+
+///////////////////////////////////////Cmd VS ENTRYPOINT DIFFERENCE/////////////////////////////////////////////////
+A classic "Senior Dev" headache occurs when you want to inspect your container but the ENTRYPOINT is too "stubborn."
+
+Here is the most common scenario where ENTRYPOINT creates a trap and CMD saves the day.
+
+🚨 The Scenario: The "Broken Config" Trap
+Imagine your Spring Boot app is crashing on startup because of a database connection error. You want to "jump into" the container to see if you can ping the database or check a config file.
+
+❌ The Problem with ENTRYPOINT
+If your Dockerfile looks like this:
+
+Dockerfile
+
+ENTRYPOINT ["java", "-jar", "app.jar"]
+And you try to run a shell to debug:
+
+Bash
+
+docker run -it my-app /bin/sh
+What happens: Docker tries to run: java -jar app.jar /bin/sh. Result: The app crashes immediately because /bin/sh isn't a valid Java argument. You are locked out of your own container because the Entrypoint refuses to let go of the Java command.
+
+✅ How CMD fixes it
+If your Dockerfile looks like this:
+
+Dockerfile
+
+CMD ["java", "-jar", "app.jar"]
+And you run the same debug command:
+Bash
+
+docker run -it my-app /bin/sh
+What happens: Docker completely replaces the java command with /bin/sh. Result: You are now inside the container terminal! You can look around, check files, and find the bug.
