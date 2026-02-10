@@ -1,8 +1,8 @@
-version: '2'
-#name: survey-app-new
+#version: '3.8'
+
 services:
   db:
-    image: postgres:15
+    image: postgres:15-alpine  # Switched to alpine for smaller size
     security_opt:
       - seccomp:unconfined
     environment:
@@ -10,24 +10,37 @@ services:
       POSTGRES_PASSWORD: password123
       POSTGRES_DB: surveydb
     ports:
-      - "5434:5432"
-    # --- ADD THIS SECTION ---
+      - "5435:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    # --- NEW: DB Healthcheck ---
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sathwik -d surveydb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   app:
     build: .
+    # Changed host port to 8085 as discussed, mapping to internal 8080
     ports:
-      - "8090:8080"
+      - "8091:8080"
     depends_on:
-      - db
+      db:
+        condition: service_healthy # This is the "Pro" way to wait for DB
     restart: on-failure
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/surveydb
       SPRING_DATASOURCE_USERNAME: sathwik
       SPRING_DATASOURCE_PASSWORD: password123
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
+    # --- NEW: App Healthcheck ---
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
-# --- AND ADD THIS AT THE VERY BOTTOM ---
 volumes:
   postgres_data:

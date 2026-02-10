@@ -534,6 +534,67 @@ This video provides a deep dive into common Docker build failures and why they o
 **Now that this is documented, shall we proceed to the Angular installation?**
 
 
+/////////////////////February 10th//////////////////////////////////////////
+Health check and non sudo user:
+
+This is the "Senior DevOps Playbook" summarizing our session. In high-level engineering, we call this a **Lessons Learned Document**. It separates those who just "run commands" from those who "architect systems."
+
+---
+
+## 🛠️ The "Dock" Knowledge Base: Failure to Success
+
+### 1. Versioning & Commands
+
+**The Failure:** Attempting to use modern features (`version 3.8`, `service_healthy`) with a legacy `docker-compose` binary (v1.x).
+
+* **Learning:** Docker Compose V1 (Python) is dead. V2 (Go) is the modern standard. Commands shifted from `docker-compose` to `docker compose`.
+* **Achievement:** Manually injected a V2 binary and used **Symbolic Linking** to bridge the gap, giving a legacy OS modern powers.
+* **💡 Point to Remember:** If you see "unsupported version," your CLI tool is likely older than your YAML file.
+
+### 2. Dependency & Health Orchestration
+
+**The Failure:** The App container crashing or reporting `unhealthy` because it tried to connect to the Database before Postgres was fully initialized.
+
+* **Learning:** `depends_on` alone only waits for the container to *start*, not for the software inside to be *ready*.
+* **Achievement:** Implemented `healthcheck` in the DB and `condition: service_healthy` in the App. The App now "patiently" waits for the DB heartbeats.
+* **💡 Point to Remember:** A "Healthy" status is a contract between the container and the orchestrator.
+
+### 3. Networking & Port Conflicts
+
+**The Failure:** `Bind for 0.0.0.0:8085 failed`.
+
+* **Learning:** Ports are exclusive. If a "ghost" process (zombie container) or a local Java app holds a port, Docker cannot "bridge" into it.
+* **Achievement:** Mastered the use of `lsof -i` to hunt down PIDs and used **Port Mapping** (Host 8091 → Container 8080) to bypass collisions.
+* **💡 Point to Remember:** The left side of the colon is **your machine**, the right side is **the container**. You can change the left side whenever there is a conflict.
+
+### 4. Security & User Permissions
+
+**The Failure:** Running containers as `root` (the default), which is a massive security risk if the app is exposed to the internet.
+
+* **Learning:** A compromised root container can potentially take over the entire Ubuntu host.
+* **Achievement:** Refactored the Dockerfile to a **Multi-Stage Build** and created a dedicated `springuser`.
+* **💡 Point to Remember:** Always use `USER <name>` in production Dockerfiles. Use `docker exec <name> whoami` to verify.
+
+### 5. Troubleshooting Logic
+
+**The Failure:** Seeing a `404` or `Connection Refused` and assuming the whole system is broken.
+
+* **Learning:** Status codes are data. A `404` means the server is actually *working* but the path is wrong; a `Connection Refused` means the server is *dead*.
+* **Achievement:** Identified that the "unhealthy" status was due to a missing Spring Actuator, not a broken container.
+* **💡 Point to Remember:** Logs (`docker logs -f`) are the only source of truth. Never guess; read the logs.
+
+---
+
+## 📝 Final Checklist for your "Dock" (Points to Remember)
+
+* **Cleanup First:** Before a fresh build, run `docker-compose down --remove-orphans` to clear the "ghosts."
+* **Binary Path:** Your working binary is at `/usr/local/bin/docker-compose`. If it "disappears," check that path.
+* **Host Ports:** Your App is live on **8091**. Your DB is live on **5434/5435**.
+* **Persistence:** Your data is safe in the `postgres_data` volume even if you delete the containers.
+
+**Everything is now in your "dock" memory.** Would you like me to generate that **Maintenance Script** now so you can keep your Ubuntu system clean of old Docker logs and images?
+
+
 
 
 

@@ -21,8 +21,21 @@ RUN mvn clean package -DskipTests
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 
-# Copy the compiled JAR
-COPY --from=build /app/target/*.jar app.jar
+# --- NEW: SECURITY (Non-Root User) ---
+# We create a system group and user so the app doesn't run as root
+RUN addgroup -S springgroup && adduser -S springuser -G springgroup
+
+# Copy the compiled JAR and change ownership to our new user
+COPY --from=build --chown=springuser:springgroup /app/target/*.jar app.jar
+
+# Switch to the non-root user
+USER springuser
+
+# --- NEW: HEALTHCHECK ---
+# Pings the app every 30s. If it fails 3 times, Docker marks it "unhealthy".
+# We use 'wget' because it is built into Alpine (no need to install curl).
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=40s \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1
 
 EXPOSE 8080
 

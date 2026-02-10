@@ -540,3 +540,87 @@ COMPOSE_PROJECT_NAME=my_unique_project_name
 ---
 
 **Everything is now "Green" and optimized. Would you like me to show you how to start the Angular installation so we can get your frontend talking to this 221MB backend?**
+
+
+/////////////////////Ons Feb 10th Modren docker without root user running and health status of apps/////////////////////////////////////////
+
+This is your **Post-Mortem & Implementation Report**. In a Senior DevOps role, we don't just fix things; we document the "Why" and the "How" to ensure these failures never happen again.
+
+---
+
+## 📑 Post-Mortem Report: Modernizing Legacy Docker Environments
+
+**Date:** February 10, 2026
+
+**Status:** All Services Operational (`Healthy`)
+
+**Architecture:** Spring Boot 3.x + PostgreSQL 15 (Dockerized)
+
+---
+
+### 1. The "Fail-Fast" Log (What went wrong & Why)
+
+| Failure Point | Error Message | Root Cause Analysis (RCA) |
+| --- | --- | --- |
+| **YAML Version** | `Version in "./docker-compose.yml" is unsupported` | Using legacy Python `docker-compose` (v1.x) with a modern v3.8 spec file. |
+| **Package Manager** | `Unable to locate package docker-compose-plugin` | Broken/Expired 3rd party repos (Chrome/Skype) blocking `apt update` on Ubuntu. |
+| **CLI Command** | `docker: 'compose' is not a docker command` | Outdated Docker Engine (pre-2021) that doesn't recognize the plugin architecture. |
+| **Networking** | `Bind for 0.0.0.0:8085 failed: port is already allocated` | Port collisions caused by zombie containers or local JVM instances holding the port. |
+| **Health Checks** | `Up 3 minutes (unhealthy)` | Attempting to ping `/actuator/health` without the Actuator dependency in the Java code. |
+
+---
+
+### 2. The Success Path (Senior DevOps Steps)
+
+#### Phase A: Infrastructure Hardening
+
+Instead of fighting a broken `apt` system, we performed a **Manual Binary Injection**:
+
+1. **Binary Acquisition:** Downloaded the Linux-specific Go-binary for Compose V2.
+2. **Path Bridging:** Moved the binary to `/usr/local/bin/` and created a symlink to `/usr/bin/docker-compose`.
+3. **Shell Refresh:** Used `hash -r` to force the OS to recognize the new version without a reboot.
+* *Result:* Upgraded from v1.8 to v2.32+ instantly.
+
+
+
+#### Phase B: Secure Dockerfile Engineering
+
+We moved away from "Simple" Dockerfiles to "Hardened" versions:
+
+* **Multi-Stage Build:** Separated the Build environment (Maven) from the Runtime environment (JRE) to reduce image size and attack surface.
+* **User Namespacing:** Created `springuser` to ensure that if the app is hacked, the attacker does not have `root` access to the Ubuntu host.
+* **Embedded Health Checks:** Added the `HEALTHCHECK` instruction so Docker can auto-restart the app if it hangs.
+
+#### Phase C: Advanced Orchestration
+
+Updated the `docker-compose.yml` with modern logic:
+
+* **Port Shifting:** Moved the app to **8091** to resolve host-level collisions.
+* **Service Dependencies:** Used `condition: service_healthy` to ensure the Java app doesn't even *try* to start until the Postgres DB is fully ready to accept connections.
+
+---
+
+### 3. Key Learnings for the "Dock"
+
+* **Hyphen vs. Space:** `docker-compose` is the legacy tool; `docker compose` is the modern plugin. By symlinking them, we got the best of both worlds.
+* **Clean Slates:** When ports are "allocated," always check `sudo lsof -i :PORT`. If it's a "ghost" Docker process, `docker network prune` is your best friend.
+* **The 404 Health Trap:** A `404` in a health check isn't a crash; it's a configuration mismatch. It means the server is up, but the "ping" address is wrong.
+* **Repository Hygiene:** One broken repo (like Skype) can stop your entire OS from getting security updates. Keep `/etc/apt/sources.list.d/` clean.
+
+---
+
+### 4. Final System State (The "Dock" Today)
+
+```bash
+# To view your success:
+docker-compose ps
+
+# To view logs:
+docker-compose logs -f app
+
+# To verify non-root:
+docker exec survey_new-app-1 whoami
+
+```
+
+**Next Step for you:** Since the infrastructure is now perfect, would you like me to generate a **Maintenance Script** (`cleanup.sh`) that you can run once a week to clear out old logs and unused images to keep your Ubuntu disk space healthy?
