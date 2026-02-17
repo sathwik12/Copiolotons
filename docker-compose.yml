@@ -7,9 +7,12 @@ services:
     environment:
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      # CHANGE HERE: We tell Postgres to look at a file path for the password
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    secrets:
+      - db_password  # Granting the DB access to the "envelope"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 10s
@@ -18,26 +21,29 @@ services:
     restart: always
 
   app:
-    # UPDATED: This dynamic name prevents overwriting old images
-    image: survey_app:${APP_VERSION:-1.0.0}-${GIT_SHA:-local}
+    image: survey_app:${APP_VERSION:-1.0.1}-${GIT_SHA:-local}
     build:
       context: .
-      args:
-        # Passes the version/SHA into the Dockerfile if needed for metadata
-        - APP_VERSION=${APP_VERSION:-1.0.0}
-        - GIT_SHA=${GIT_SHA:-local}
     container_name: survey_new-app-1
     ports:
       - "${HOST_APP_PORT}:8080"
     environment:
+      SPRING_PROFILES_ACTIVE: ${APP_PROFILE:-dev}
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${DB_NAME}
       SPRING_DATASOURCE_USERNAME: ${DB_USER}
-      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
-      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      # CHANGE HERE: Spring pulls from the secret file too
+      SPRING_DATASOURCE_PASSWORD_FILE: /run/secrets/db_password
+    secrets:
+      - db_password  # Granting the App access to the "envelope"
     depends_on:
       db:
         condition: service_healthy
     restart: always
+
+# THIS IS NEW: Tell Docker where the physical secret file is on your computer
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt
 
 volumes:
   postgres_data:

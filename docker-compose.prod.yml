@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  app:
+    # Production-only protections
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'     # Use only half a CPU core
+          memory: 512M    # Limit RAM to 512MB
+    restart: always       # Always restart if it crashes

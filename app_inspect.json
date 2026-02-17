@@ -1,0 +1,288 @@
+[
+    {
+        "Id": "5e002e41892e080753bcf3a0eb2aca1f46c900b952c7626f44e18818417c93cd",
+        "Created": "2026-02-17T13:07:24.210775041Z",
+        "Path": "java",
+        "Args": [
+            "-jar",
+            "app.jar"
+        ],
+        "State": {
+            "Status": "running",
+            "Running": true,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 13508,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "2026-02-17T13:07:26.880054247Z",
+            "FinishedAt": "0001-01-01T00:00:00Z",
+            "Health": {
+                "Status": "healthy",
+                "FailingStreak": 0,
+                "Log": [
+                    {
+                        "Start": "2026-02-17T19:43:52.507799865+05:30",
+                        "End": "2026-02-17T19:43:52.662868678+05:30",
+                        "ExitCode": 0,
+                        "Output": "Connecting to localhost:8080 (127.0.0.1:8080)\nremote file exists\n"
+                    },
+                    {
+                        "Start": "2026-02-17T19:44:23.694455794+05:30",
+                        "End": "2026-02-17T19:44:23.847429334+05:30",
+                        "ExitCode": 0,
+                        "Output": "Connecting to localhost:8080 (127.0.0.1:8080)\nremote file exists\n"
+                    },
+                    {
+                        "Start": "2026-02-17T19:44:54.226351835+05:30",
+                        "End": "2026-02-17T19:44:54.315553159+05:30",
+                        "ExitCode": 0,
+                        "Output": "Connecting to localhost:8080 (127.0.0.1:8080)\nremote file exists\n"
+                    },
+                    {
+                        "Start": "2026-02-17T19:45:24.380645596+05:30",
+                        "End": "2026-02-17T19:45:24.519196929+05:30",
+                        "ExitCode": 0,
+                        "Output": "Connecting to localhost:8080 (127.0.0.1:8080)\nremote file exists\n"
+                    },
+                    {
+                        "Start": "2026-02-17T19:45:54.584295256+05:30",
+                        "End": "2026-02-17T19:45:54.755673285+05:30",
+                        "ExitCode": 0,
+                        "Output": "Connecting to localhost:8080 (127.0.0.1:8080)\nremote file exists\n"
+                    }
+                ]
+            }
+        },
+        "Image": "sha256:9fe4b7498b5f4bc9a36a381cc94d965063043e429f0a56d12723fa991526aafe",
+        "ResolvConfPath": "/var/lib/docker/containers/5e002e41892e080753bcf3a0eb2aca1f46c900b952c7626f44e18818417c93cd/resolv.conf",
+        "HostnamePath": "/var/lib/docker/containers/5e002e41892e080753bcf3a0eb2aca1f46c900b952c7626f44e18818417c93cd/hostname",
+        "HostsPath": "/var/lib/docker/containers/5e002e41892e080753bcf3a0eb2aca1f46c900b952c7626f44e18818417c93cd/hosts",
+        "LogPath": "/var/lib/docker/containers/5e002e41892e080753bcf3a0eb2aca1f46c900b952c7626f44e18818417c93cd/5e002e41892e080753bcf3a0eb2aca1f46c900b952c7626f44e18818417c93cd-json.log",
+        "Name": "/survey_new-app-1",
+        "RestartCount": 0,
+        "Driver": "overlay2",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "docker-default",
+        "ExecIDs": null,
+        "HostConfig": {
+            "Binds": null,
+            "ContainerIDFile": "",
+            "LogConfig": {
+                "Type": "json-file",
+                "Config": {}
+            },
+            "NetworkMode": "survey_new_default",
+            "PortBindings": {
+                "8080/tcp": [
+                    {
+                        "HostIp": "",
+                        "HostPort": "8091"
+                    }
+                ]
+            },
+            "RestartPolicy": {
+                "Name": "always",
+                "MaximumRetryCount": 0
+            },
+            "AutoRemove": false,
+            "VolumeDriver": "",
+            "VolumesFrom": null,
+            "CapAdd": null,
+            "CapDrop": null,
+            "Dns": null,
+            "DnsOptions": null,
+            "DnsSearch": null,
+            "ExtraHosts": [],
+            "GroupAdd": null,
+            "IpcMode": "shareable",
+            "Cgroup": "",
+            "Links": null,
+            "OomScoreAdj": 0,
+            "PidMode": "",
+            "Privileged": false,
+            "PublishAllPorts": false,
+            "ReadonlyRootfs": false,
+            "SecurityOpt": null,
+            "UTSMode": "",
+            "UsernsMode": "",
+            "ShmSize": 67108864,
+            "Runtime": "runc",
+            "ConsoleSize": [
+                0,
+                0
+            ],
+            "Isolation": "",
+            "CpuShares": 0,
+            "Memory": 536870912,
+            "NanoCpus": 500000000,
+            "CgroupParent": "",
+            "BlkioWeight": 0,
+            "BlkioWeightDevice": null,
+            "BlkioDeviceReadBps": null,
+            "BlkioDeviceWriteBps": null,
+            "BlkioDeviceReadIOps": null,
+            "BlkioDeviceWriteIOps": null,
+            "CpuPeriod": 0,
+            "CpuQuota": 0,
+            "CpuRealtimePeriod": 0,
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+            "Devices": null,
+            "DeviceCgroupRules": null,
+            "DiskQuota": 0,
+            "KernelMemory": 0,
+            "MemoryReservation": 0,
+            "MemorySwap": -1,
+            "MemorySwappiness": null,
+            "OomKillDisable": false,
+            "PidsLimit": 0,
+            "Ulimits": null,
+            "CpuCount": 0,
+            "CpuPercent": 0,
+            "IOMaximumIOps": 0,
+            "IOMaximumBandwidth": 0,
+            "MaskedPaths": [
+                "/proc/asound",
+                "/proc/acpi",
+                "/proc/kcore",
+                "/proc/keys",
+                "/proc/latency_stats",
+                "/proc/timer_list",
+                "/proc/timer_stats",
+                "/proc/sched_debug",
+                "/proc/scsi",
+                "/sys/firmware"
+            ],
+            "ReadonlyPaths": [
+                "/proc/bus",
+                "/proc/fs",
+                "/proc/irq",
+                "/proc/sys",
+                "/proc/sysrq-trigger"
+            ]
+        },
+        "GraphDriver": {
+            "Data": {
+                "LowerDir": "/var/lib/docker/overlay2/b9e186fa2ed1073eb94733f323dccdb655dea8bff1d07f0802fd44980417c226-init/diff:/var/lib/docker/overlay2/2cc3ae01f9fb0778077b4d7460991596e7728655580c337c0e26227202c18f33/diff:/var/lib/docker/overlay2/fe8b6d2a341d2d41984173d16e963d26ac2f7b46de0b655406eb280ac7701ed0/diff:/var/lib/docker/overlay2/2b34b3f5bed8019d1a3e0deb80b47b40200177912192ecfac405c2c0a99e09f6/diff:/var/lib/docker/overlay2/6521b010b814891618710480853af90e39f634761032ec4d82f8374171a0ed7c/diff:/var/lib/docker/overlay2/e72d36eea71407089af7e1acb3e801b8ff2e239d8a77e8eee1c3a397814af4f9/diff:/var/lib/docker/overlay2/61dd3400e20ae81021ab1f0df1d1dd49a8eba9a8efb6fdccfd5f9d691a65348b/diff:/var/lib/docker/overlay2/16897ed1c87fbbaddcc66f02b28f065f3017107b62b80e6bedeb3a38bbdb2f8b/diff:/var/lib/docker/overlay2/dc691e5230b0eb5661df8a1b5383907ee8c7fcadf6e7908a4cbf8a49ba9d3470/diff",
+                "MergedDir": "/var/lib/docker/overlay2/b9e186fa2ed1073eb94733f323dccdb655dea8bff1d07f0802fd44980417c226/merged",
+                "UpperDir": "/var/lib/docker/overlay2/b9e186fa2ed1073eb94733f323dccdb655dea8bff1d07f0802fd44980417c226/diff",
+                "WorkDir": "/var/lib/docker/overlay2/b9e186fa2ed1073eb94733f323dccdb655dea8bff1d07f0802fd44980417c226/work"
+            },
+            "Name": "overlay2"
+        },
+        "Mounts": [],
+        "Config": {
+            "Hostname": "5e002e41892e",
+            "Domainname": "",
+            "User": "springuser",
+            "AttachStdin": false,
+            "AttachStdout": true,
+            "AttachStderr": true,
+            "ExposedPorts": {
+                "8080/tcp": {}
+            },
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "SPRING_DATASOURCE_USERNAME=sathwik",
+                "SPRING_DATASOURCE_PASSWORD=NewSecurePass2026!",
+                "SPRING_JPA_HIBERNATE_DDL_AUTO=update",
+                "SPRING_PROFILES_ACTIVE=prod",
+                "SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/surveydb",
+                "PATH=/opt/java/openjdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "JAVA_HOME=/opt/java/openjdk",
+                "LANG=en_US.UTF-8",
+                "LANGUAGE=en_US:en",
+                "LC_ALL=en_US.UTF-8",
+                "JAVA_VERSION=jdk-17.0.18+8"
+            ],
+            "Cmd": null,
+            "Healthcheck": {
+                "Test": [
+                    "CMD-SHELL",
+                    "wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1"
+                ],
+                "Interval": 30000000000,
+                "Timeout": 10000000000,
+                "StartPeriod": 40000000000,
+                "Retries": 3
+            },
+            "Image": "survey_app:1.0.0-1a1bd3f",
+            "Volumes": null,
+            "WorkingDir": "/app",
+            "Entrypoint": [
+                "java",
+                "-jar",
+                "app.jar"
+            ],
+            "OnBuild": null,
+            "Labels": {
+                "com.docker.compose.config-hash": "d5a691f4491246caba4353e56b1609b8ee07ffc5c2eb0a3de864d6c283d8a8ec",
+                "com.docker.compose.container-number": "1",
+                "com.docker.compose.depends_on": "db:service_healthy:false",
+                "com.docker.compose.image": "sha256:ebe7d70e9304cddbf43160d0fecbbbed4ca300e0eadc83657f45ef21f8f3be8d",
+                "com.docker.compose.oneoff": "False",
+                "com.docker.compose.project": "survey_new",
+                "com.docker.compose.project.config_files": "/home/shravya/Copiolotons/docker-compose.yml,/home/shravya/Copiolotons/docker-compose.prod.yml",
+                "com.docker.compose.project.working_dir": "/home/shravya/Copiolotons",
+                "com.docker.compose.replace": "72d6695aed2fa3841cb3c8ce51154b10c60207c8ee78c5ffe08a7e7643240e4b",
+                "com.docker.compose.service": "app",
+                "com.docker.compose.version": "2.32.4"
+            }
+        },
+        "NetworkSettings": {
+            "Bridge": "",
+            "SandboxID": "4aca7478597c7b7d636b927d216bafbbe7752504e6adf381b6cf0fa7c81dfb93",
+            "HairpinMode": false,
+            "LinkLocalIPv6Address": "",
+            "LinkLocalIPv6PrefixLen": 0,
+            "Ports": {
+                "8080/tcp": [
+                    {
+                        "HostIp": "0.0.0.0",
+                        "HostPort": "8091"
+                    }
+                ]
+            },
+            "SandboxKey": "/var/run/docker/netns/4aca7478597c",
+            "SecondaryIPAddresses": null,
+            "SecondaryIPv6Addresses": null,
+            "EndpointID": "",
+            "Gateway": "",
+            "GlobalIPv6Address": "",
+            "GlobalIPv6PrefixLen": 0,
+            "IPAddress": "",
+            "IPPrefixLen": 0,
+            "IPv6Gateway": "",
+            "MacAddress": "",
+            "Networks": {
+                "survey_new_default": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": [
+                        "survey_new-app-1",
+                        "app",
+                        "5e002e41892e"
+                    ],
+                    "NetworkID": "a10d3d097e2049d702abdd293bd6cae7fe4b86d32bc7960b4eb59c14d166192a",
+                    "EndpointID": "3b451022cfbfd9c6f58d08817bc2fba39b7c5b9ec19a0ec58a177b12236df5ed",
+                    "Gateway": "192.168.96.1",
+                    "IPAddress": "192.168.96.3",
+                    "IPPrefixLen": 20,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "MacAddress": "02:42:c0:a8:60:03",
+                    "DriverOpts": null
+                }
+            }
+        }
+    }
+]

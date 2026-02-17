@@ -1,19 +1,23 @@
 #!/bin/bash
+# Usage: ./deploy.sh dev OR ./deploy.sh prod
 
-# 1. Capture the "Fingerprint" (Git Short SHA)
+ENV=${1:-dev}
 export GIT_SHA=$(git rev-parse --short HEAD)
+export APP_PROFILE=$ENV
 
-# 2. Capture the "Label" (Semantic Version from .env)
-# This assumes you added APP_VERSION=1.0.1 to your .env
-export APP_VERSION=$(grep APP_VERSION .env | cut -d '=' -f2)
+# Determine if we should use 'docker compose' or 'docker-compose'
+if docker compose version > /dev/null 2>&1; then
+    DOCKER_CMD="docker compose"
+else
+    DOCKER_CMD="docker-compose"
+fi
 
-echo "🚀 Starting Production-Grade Deployment"
-echo "📦 Version: $APP_VERSION"
-echo "🆔 Commit:  $GIT_SHA"
+echo "🚀 Deploying with [$ENV] profile using $DOCKER_CMD..."
 
-# 3. Execute build with specific tags
-# --build-arg passes data into the Dockerfile
-# -d runs in detached mode
-docker-compose up -d --build
+if [ "$ENV" == "prod" ]; then
+    $DOCKER_CMD -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+else
+    $DOCKER_CMD up -d --build
+fi
 
-echo "✅ Deployment successful. Image tagged as survey_app:$APP_VERSION-$GIT_SHA"
+echo "✅ Deployment successful!"
