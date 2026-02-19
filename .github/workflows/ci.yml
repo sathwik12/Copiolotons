@@ -1,0 +1,21 @@
+# Waking up the robot
+name: Survey App CI
+
+on:
+  push:
+    branches: [ "main" ]  # Runs every time you push code to the main branch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 1. Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 2. Build Docker Image
+        # This is exactly what you used to do manually
+        run: docker build -t survey-app:latest .
+
+      - name: 3. Verify Build
+        # This confirms the image exists on GitHub's server
+        run: docker images
