@@ -1,9 +1,8 @@
-# Waking up the robot
 name: Survey App CI
 
 on:
   push:
-    branches: [ "main" ]  # Runs every time you push code to the main branch
+    branches: [ "main" ]
 
 jobs:
   build:
@@ -12,10 +11,16 @@ jobs:
       - name: 1. Checkout Code
         uses: actions/checkout@v4
 
-      - name: 2. Build Docker Image
-        # This is exactly what you used to do manually
-        run: docker build -t survey-app:latest .
+      - name: 2. Set up Docker Buildx
+        # This installs the engine that allows caching
+        uses: docker/setup-buildx-action@v3
 
-      - name: 3. Verify Build
-        # This confirms the image exists on GitHub's server
-        run: docker images
+      - name: 3. Build Docker Image with Cache
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false # We aren't pushing to Docker Hub yet
+          tags: survey-app:latest
+          # THE MAGIC: This tells GitHub to save and find layers in its cache
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

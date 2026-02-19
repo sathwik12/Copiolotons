@@ -1656,6 +1656,80 @@ Since you removed the DB port, you can no longer use a tool like **pgAdmin** ins
 
 **Would you like me to show you how to run a "one-time" container for a GUI tool that joins the network just when you need it?**
 
+////////////////Ons Feb 19th///////////////////////
+16. Build image in CI pipeline
+❌ NOT DONE
+All builds are manual.
+Congratulations! You’ve just successfully moved from "Manual Labor" to "Industrial Automation." Seeing that green checkmark on GitHub means your project is now part of the **1% of projects** that are properly automated.
+
+Here are the detailed notes for your **Dock** to explain exactly what happened behind the scenes.
+
+---
+
+## 🏛️ Project: Automated CI Pipeline (Task 16)
+
+**Date:** February 19, 2026
+
+**Status:** ✅ COMPLETED
+
+### 1. The Core Objective
+
+We replaced the manual `docker build` process on your laptop with an **Automated Workflow**. This ensures that every time code is pushed to the repository, the system verifies the application is still "buildable" and "stable."
+
+### 2. The Infrastructure
+
+* **Tool:** GitHub Actions (CI/CD Platform).
+* **Runner:** A virtual Ubuntu Linux server provided by GitHub.
+* **Trigger:** The "Push" event on the `main` branch.
+
+---
+
+### 3. Step-by-Step Breakdown of the "Robot"
+
+When you pushed your code, GitHub performed these specific steps in the cloud:
+
+| Step | Technical Command | Purpose |
+| --- | --- | --- |
+| **Checkout** | `actions/checkout@v4` | Copies your source code from the Git repo onto the cloud runner's hard drive. |
+| **Build** | `docker build -t survey-app .` | Follows your `Dockerfile` instructions to compile Java and wrap it in a container. |
+| **Verify** | `docker images` | Confirms the image was created successfully and shows the file size (331MB). |
+
+### 4. Key Challenges Overcome
+
+* **Permission Hardening:** Encountered a `remote rejected` error. We learned that modifying automation logic (`.github/workflows`) requires a **Personal Access Token (PAT)** with specific **`workflow`** permissions.
+* **Environment Isolation:** We proved the app builds in a clean environment, meaning it doesn't rely on any "magic files" hidden on your laptop.
+
+---
+
+### 5. Why this matters for Production
+
+In a real company, this "Green Checkmark" is the **Gatekeeper**.
+
+* If the build fails (Red X), the code is blocked from going to the customers.
+* If the build passes (Green Check), it moves to the next stage: **Security Scanning** and **Deployment**.
+
+---
+
+### 🏛️ Added to your Dock:
+
+> **"CI Automation Summary:**
+> 1. **Zero-Local Dependency:** The build process no longer consumes laptop RAM or CPU; it is offloaded to GitHub.
+> 2. **Standardization:** Every build starts from a 'Clean Slate' (Ubuntu-latest), eliminating the 'Works on my machine' bug.
+> 3. **Speed:** Achieved a consistent build time of ~40 seconds.
+> 4. **Future-Proofing:** The foundation is now ready to add **Auto-Deployment (Task 17)** and **Docker Hub Registry** pushing."
+> 
+> 
+
+---
+
+### 🚀 Final Question for Today
+
+Your "Cake" is baked (Built), and the "Recipe" is verified. Currently, we throw the cake away once we finish baking it.
+
+**Should we stop here, or would you like to see how to "Save" that cake to Docker Hub so you can download it anywhere?** (This is the final tiny piece of Task 16!)
+
+
+
 
 
 
