@@ -26,6 +26,6 @@ jobs:
           context: .
           push: true # This officially sends it to the cloud
           # Replace 'yourusername' with your actual Docker Hub username
-          tags: yourusername/survey-app:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/survey-app:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
