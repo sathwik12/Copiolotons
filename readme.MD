@@ -45,7 +45,17 @@ services:
     restart: on-failure:3        # Restart the app up to 3 times if it loses the DB
 
 ```
+docker rm -f survey-dev
 
+docker run -d \
+  --name survey-dev \
+  --network survey_new_survey_net \
+  -e SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/surveydb \
+  -e SPRING_DATASOURCE_USERNAME=sathwik \
+  -e SPRING_DATASOURCE_PASSWORD='NewSecurePass2026!' \
+  -e SPRING_JPA_HIBERNATE_DDL_AUTO=update \
+  -p 8070:8080 \
+  hansyy/survey-app:latest
 ---
 
 ### 3. Comparing Cloud vs. On-Prem Automation
