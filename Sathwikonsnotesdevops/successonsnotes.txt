@@ -1450,5 +1450,10 @@ Here is the summary of what we just achieved for your **Dock**.
 
 **Would you like to move on to Task 18 (Environment Variables) to make your app more "configurable," or should we look into Task 19 (Secrets Management) to keep your passwords safe?**
 
+18. Push image to private registry
+❌ NOT DONE
+You pulled from ECR public.
+But did NOT:
+Push your own image to private ECR
 
 
