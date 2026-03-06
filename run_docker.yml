@@ -1,0 +1,24 @@
+---
+- name: Run Docker Container via Ansible
+  hosts: vbox_vms
+  gather_facts: no
+  become: yes
+
+  tasks:
+    - name: 1. Pull the Nginx Image
+      raw: docker pull nginx:latest
+
+    - name: 2. Remove existing test container (if any)
+      raw: docker rm -f web-test-ansible
+      ignore_errors: yes
+
+    - name: 3. Run the Container on Port 8086
+      raw: docker run -d --name web-test-ansible -p 8086:80 nginx:latest
+
+    - name: 4. Verify Container is Running
+      raw: docker ps | grep web-test-ansible
+      register: docker_output
+
+    - name: 5. Show Status
+      debug:
+        msg: "{{ docker_output.stdout }}"

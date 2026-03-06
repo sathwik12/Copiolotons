@@ -1,0 +1,30 @@
+---
+- name: Using Tags for Copilotons
+  hosts: web
+  become: true
+
+  tasks:
+    - name: 1. Install Packages
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop: [nginx, git]
+      tags: 
+        - install
+        - packages
+
+    - name: 2. Update Configuration
+      template:
+        src: nginx.conf.j2
+        dest: /etc/nginx/nginx.conf
+      tags: 
+        - config
+        - web
+
+    - name: 3. Restart Service
+      service:
+        name: nginx
+        state: restarted
+      tags: 
+        - restart
+        - service

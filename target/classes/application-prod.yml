@@ -1,0 +1,6 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://db:5432/${DB_NAME}
+    username: ${DB_USER}
+    # This tells Spring: "Open the envelope at this path and use what's inside"
+    password: ${SPRING_DATASOURCE_PASSWORD_FILE}

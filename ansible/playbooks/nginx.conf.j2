@@ -1,0 +1,21 @@
+# Config for {{ project_name }}
+# Environment: {{ env }}
+
+server {
+    listen {{ http_port }};
+    server_name {{ domain_name }};
+
+    root /var/www/{{ project_name }};
+
+    # Logic: Only allow many clients if in production
+    {% if env == 'production' %}
+    worker_connections {{ max_clients }};
+    {% else %}
+    worker_connections 50;
+    {% endif %}
+
+    # Loop: Automatically add common log files
+    {% for log in ['access', 'error'] %}
+    {{ log }}_log /var/log/nginx/{{ log }}.log;
+    {% endfor %}
+}

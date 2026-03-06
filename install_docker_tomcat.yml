@@ -1,0 +1,51 @@
+---
+- name: Install Docker and Native Tomcat 7
+  hosts: vbox_vms
+  gather_facts: no  # Prevents Python compatibility errors
+  become: yes
+
+  tasks:
+    - name: Install Docker Engine
+      raw: |
+        apt-get update
+        apt-get install -y ca-certificates curl gnupg
+        install -m 0755 -d /etc/apt/keyrings
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg --yes
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+        apt-get update
+        apt-get install -y docker-ce docker-ce-cli containerd.io
+
+    - name: Install Java 8 (Required for Tomcat 7)
+      raw: apt-get install -y openjdk-8-jdk
+
+    - name: Download and Install Tomcat 7 binaries
+      raw: |
+        mkdir -p /opt/tomcat7
+        curl -O https://archive.apache.org/dist/tomcat/tomcat-7/v7.0.109/bin/apache-tomcat-7.0.109.tar.gz
+        tar xzvf apache-tomcat-7.0.109.tar.gz -C /opt/tomcat7 --strip-components=1
+        chmod +x /opt/tomcat7/bin/*.sh
+
+    - name: Configure Tomcat to listen on Port 8085
+      raw: sed -i 's/port="8080"/port="8085"/g' /opt/tomcat7/conf/server.xml
+
+    - name: Create Systemd Service for Tomcat 7
+      raw: |
+        cat <<EOF > /etc/systemd/system/tomcat7.service
+        [Unit]
+        Description=Apache Tomcat 7
+        After=network.target
+
+        [Service]
+        Type=forking
+        User=root
+        Environment=JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+        Environment=CATALINA_HOME=/opt/tomcat7
+        ExecStart=/opt/tomcat7/bin/startup.sh
+        ExecStop=/opt/tomcat7/bin/shutdown.sh
+
+        [Install]
+        WantedBy=multi-user.target
+        EOF
+
+    - name: Start Tomcat 7 Service
+      raw: systemctl daemon-reload && systemctl enable tomcat7 && systemctl restart tomcat7

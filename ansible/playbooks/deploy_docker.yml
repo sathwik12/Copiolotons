@@ -1,0 +1,30 @@
+---
+- name: Setup Docker for Copilotons
+  hosts: web
+  become: true
+
+  tasks:
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+        update_cache: yes
+
+    - name: Start Docker Service
+      service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Pull Nginx Image
+      community.docker.docker_image:
+        name: nginx:latest
+        source: pull
+
+    - name: Run Copilotons Container
+      community.docker.docker_container:
+        name: copilotons_web
+        image: nginx:latest
+        state: started
+        published_ports:
+          - "8081:80"

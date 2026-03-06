@@ -1,0 +1,25 @@
+---
+- name: Setup Copilotons Web Servers
+  hosts: web
+  become: true
+  vars:
+    app_message: "Welcome to Copilotons Project"
+
+  tasks:
+    - name: Ensure vim is installed
+      apt:
+        name: vim
+        state: present
+
+    - name: Create a welcome file
+      copy:
+        content: "{{ app_message }}"
+        dest: /tmp/welcome.txt
+
+    - name: Run a shell command to show the file
+      command: cat /tmp/welcome.txt
+      register: result
+
+    - name: Print the result to screen
+      debug:
+        msg: "{{ result.stdout }}"

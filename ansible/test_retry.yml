@@ -1,0 +1,21 @@
+---
+- name: Professional Install with Retry Logic
+  hosts: web
+  become: true  # Required for installing packages
+  
+  tasks:
+    - name: Install Nginx but wait if Apt is locked
+      apt:
+        name: nginx
+        state: present
+        update_cache: yes
+      # --- RETRY LOGIC START ---
+      register: apt_status
+      until: apt_status is success
+      retries: 5
+      delay: 10
+      # --- RETRY LOGIC END ---
+
+    - name: Confirm Installation
+      debug:
+        msg: "Nginx was installed successfully on {{ inventory_hostname }} despite any locks!"

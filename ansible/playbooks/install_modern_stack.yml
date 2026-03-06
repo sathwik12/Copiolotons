@@ -1,0 +1,48 @@
+---
+- name: Install Docker and Native Tomcat 9 (Java 17 Compatible)
+  hosts: vbox_vms
+  gather_facts: no
+  become: yes
+
+  tasks:
+    - name: 1. Install Docker Engine
+      raw: |
+        apt-get update
+        apt-get install -y ca-certificates curl gnupg
+        install -m 0755 -d /etc/apt/keyrings
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg --yes
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+        apt-get update
+        apt-get install -y docker-ce docker-ce-cli containerd.io
+
+    - name: 2. Download and Extract Tomcat 9
+      raw: |
+        mkdir -p /opt/tomcat9
+        curl -O https://archive.apache.org/dist/tomcat/tomcat-9/v9.0.86/bin/apache-tomcat-9.0.86.tar.gz
+        tar xzvf apache-tomcat-9.0.86.tar.gz -C /opt/tomcat9 --strip-components=1
+        chmod +x /opt/tomcat9/bin/*.sh
+
+    - name: 3. Configure Tomcat 9 for Port 8085
+      raw: sed -i 's/port="8080"/port="8085"/g' /opt/tomcat9/conf/server.xml
+
+    - name: 4. Create Tomcat 9 Systemd Service (Using Existing Java 17)
+      raw: |
+        cat <<EOF > /etc/systemd/system/tomcat9.service
+        [Unit]
+        Description=Apache Tomcat 9
+        After=network.target
+
+        [Service]
+        Type=forking
+        User=root
+        Environment=JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+        Environment=CATALINA_HOME=/opt/tomcat9
+        ExecStart=/opt/tomcat9/bin/startup.sh
+        ExecStop=/opt/tomcat9/bin/shutdown.sh
+
+        [Install]
+        WantedBy=multi-user.target
+        EOF
+
+    - name: 5. Start and Enable Tomcat 9
+      raw: systemctl daemon-reload && systemctl enable tomcat9 && systemctl restart tomcat9

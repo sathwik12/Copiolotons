@@ -1,0 +1,20 @@
+---
+- name: Proving Idempotency for Copilotons
+  hosts: localhost
+  connection: local
+  become: true
+
+  tasks:
+    - name: 1. Create a directory (Idempotent)
+      file:
+        path: /tmp/copilotons_data
+        state: directory
+
+    - name: 2. Add a line to a file (Idempotent)
+      lineinfile:
+        path: /tmp/copilotons_data/config.txt
+        line: "APP_STATUS=ACTIVE"
+        create: yes
+
+    - name: 3. Run a raw shell command (NOT Idempotent by default)
+      shell: echo "New Run" >> /tmp/copilotons_data/log.txt

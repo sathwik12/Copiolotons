@@ -1,0 +1,5 @@
+---
+# List of roles to download from Galaxy
+roles:
+  - name: geerlingguy.nginx
+  - name: geerlingguy.git

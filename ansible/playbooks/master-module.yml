@@ -1,0 +1,25 @@
+---
+- name: Comprehensive Module Test
+  hosts: web
+  become: true
+
+  tasks:
+    - name: 1. Install Git
+      apt:
+        name: git
+        state: present
+
+    - name: 2. Create Project Folder
+      file:
+        path: /tmp/copilotons_code
+        state: directory
+
+    - name: 3. Create a Local User
+      user:
+        name: dev_user
+        state: present
+
+    - name: 4. Copy a simple file
+      copy:
+        content: "Git is installed"
+        dest: /tmp/copilotons_code/status.txt

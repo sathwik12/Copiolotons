@@ -1,0 +1,21 @@
+---
+- name: Deploy Dynamic Configs with Jinja2
+  hosts: web
+  become: false
+
+  tasks:
+    - name: 1. Ensure config directory exists
+      file:
+        path: /tmp/nginx
+        state: directory
+
+    - name: 2. Generate and deploy Nginx config
+      template:
+        src: nginx.conf.j2
+        dest: "/tmp/nginx/{{ domain_name }}.conf"
+      notify: Reload Nginx
+
+  handlers:
+    - name: Reload Nginx
+      debug:
+        msg: "Template changed! Reloading Nginx for {{ inventory_hostname }}..."

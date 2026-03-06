@@ -1,0 +1,1244 @@
+Ons:
+Kubernetes Architecture:
+
+Learn components:
+API Server
+etcd
+Scheduler
+Controller Manager
+Kubelet
+Kube Proxy
+Practice:
+kubectl get pods -n kube-system
+Outcome:
+Understand how cluster works internally.
+
+
+To understand **Kubernetes (K8s) Architecture** easily, think of it as a **Manager (Control Plane)** overseeing a **Team of Workers (Nodes)**.
+
+Since you are already familiar with **Docker**, we can correlate the two: Docker builds the "shipping containers," and Kubernetes is the "crane and ship" that organizes where they go.
+
+---
+
+### 🏛️ 1. The Control Plane (The "Manager")
+
+The Control Plane is the brain. It sits on your Master Node and makes sure the cluster is doing what you want.
+
+* **API Server (The Front Desk):** This is where you send your commands (like `kubectl apply`). It's the only way to talk to the cluster.
+* *Docker Correlation:* Like the Docker CLI, but for a whole cluster of machines.
+
+
+* **etcd (The Memory):** A database that stores every single detail about your cluster (which pods are running, where they are, etc.).
+* *Docker Correlation:* Like a global version of `docker inspect` data.
+
+
+* **Scheduler (The Dispatcher):** Decides which Worker Node is the best fit for your pod based on CPU/RAM.
+* *Docker Correlation:* When you run `docker run`, you decide the machine. In K8s, the Scheduler decides for you.
+
+
+* **Controller Manager (The Watchman):** It constantly checks if the "Actual State" matches your "Desired State." If a pod dies, it notices and starts a new one.
+
+---
+
+### 💪 2. The Worker Nodes (The "Laborers")
+
+These are the machines (VMs or Physical) where your **hansyy-survey-app** actually runs.
+
+* **Kubelet (The Foreman):** An agent that runs on every node. It talks to the Control Plane and ensures the containers in the Pod are running and healthy.
+* **Kube-Proxy (The Network Guard):** Handles the networking. It makes sure traffic from the internet finds its way to the right container.
+* **Container Runtime (The Engine):** This is usually **Docker** (or containerd). It’s the software that actually pulls the image and runs the container.
+
+---
+
+### 📦 3. Kubernetes Learning: The Architecture Concept
+
+**concept:** architecture_check
+
+**yaml:** architecture.yaml
+
+**command:** kubectl apply -f architecture.yaml
+
+**The Full File (Simple Pod to test the architecture):**
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: arch-test-pod
+  labels:
+    project: copilotons
+spec:
+  containers:
+  - name: web-container
+    image: hansyy/hansyy-survey-app:v1
+    ports:
+    - containerPort: 8080
+
+```
+
+---
+
+## 🚀 Execution Methods
+
+### 💻 Normal Way (Local K8s Cluster)
+
+```bash
+# Apply the test pod
+kubectl apply -f architecture.yaml
+
+# Check which Worker Node the pod was scheduled on
+kubectl get pods -o wide
+
+```
+
+### 🐳 Docker Way (Using Kind - K8s in Docker)
+
+```bash
+# Create a local architecture with 1 Control Plane and 2 Workers using Docker
+kind create cluster --name copilotons --config - <<EOF
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+- role: worker
+- role: worker
+EOF
+
+# Load your image into this Docker-based architecture
+kind load docker-image hansyy/hansyy-survey-app:v1 --name copilotons
+
+```
+//////////////////////Ons/////////////////////////////////
+
+
+Step 1 — Setup Local Cluster
+
+Learn:
+install miniqube
+
+A **Segmentation Fault (Segfault)** during a Minikube or Docker operation on Ubuntu usually means a program tried to access memory it doesn't own. For **Copilotons**, this most commonly happens due to a corrupted binary download or a conflict between the Minikube binary and your CPU architecture.
+
+---
+
+### 📦 Kubernetes Learning: Fix Segfault
+
+**concept:** binary_repair
+
+**yaml:** pod.yaml
+
+**command:** kubectl apply -f pod.yaml
+
+**The Full File (To test after the fix):**
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: segfault-test-pod
+spec:
+  containers:
+  - name: test-container
+    image: hansyy/hansyy-survey-app:v1
+
+```
+
+---
+
+## 🚀 Execution Methods
+
+### 💻 Normal Way (The Binary Fix)
+
+If the `minikube` binary was interrupted during download, it will "Segfault" when you run it. Let's delete it and download it cleanly.
+
+```bash
+# 1. Remove the potentially corrupted binary
+sudo rm /usr/local/bin/minikube
+
+# 2. Re-download (Ensuring it's the AMD64 version for most Ubuntu machines)
+curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+
+# 3. Re-install
+sudo install minikube-linux-amd64 /usr/local/bin/minikube
+
+# 4. Verify version (if this works without crashing, the Segfault is gone)
+minikube version
+
+```
+
+### 🐳 Docker Way (Memory Check)
+
+Sometimes Docker runs out of resources, causing the Minikube driver to crash.
+
+```bash
+# Check if your system has enough RAM/Storage
+free -m
+df -h
+
+# Restart Docker to clear hung memory segments
+sudo systemctl restart docker
+
+# Try starting minikube again
+minikube start --driver=docker
+
+```
+
+---
+
+## 📝 Learning Log: Day 10 (Failure Scenario)
+
+| Day | Focus | Learnings | Failure Scenarios & Fixes |
+| --- | --- | --- | --- |
+| **10** | System Stability | Understanding Segmentation Faults in CLI tools. | **Error:** `Segmentation fault (core dumped)`. **Fix:** Remove and re-download the binary to fix corruption. |
+| **10** | Architecture | Ensure binary matches CPU (AMD64 vs ARM64). | **Note:** If you are on an ARM/M1/M2 machine, you must download `minikube-linux-arm64` instead. |
+
+---
+
+**Does `minikube version` work now, or are you still seeing the Segfault error?**
+
+What is cluster
+
+Node
+
+kubectl
+
+Practice:
+
+minikube start
+
+kubectl get nodes
+
+kubectl cluster-info
+
+
+---
+
+## 📝 Learning Log: Day 9
+
+
+/////////////////////Kubectl information installation etc//////////////////////////////
+Conversation opened. 1 read message.
+
+Skip to content
+Using Gmail with screen readers
+This browser version is no longer supported. Please upgrade to a supported browser.
+
+1 of 1,797
+Ons kubectl installation
+Inbox
+
+Sathwik Sharma <sathwik23061993@gmail.com>
+1:58 PM (2 minutes ago)
+to Shravya
+
+Ons:
+
+
+This happens often. Installing Minikube does not always install kubectl automatically, so your system cannot find the Kubernetes CLI.
+
+Let's fix it step-by-step.
+
+1️⃣ First Confirm the Error
+Run:
+
+kubectl version
+If you see:
+
+kubectl: command not found
+then kubectl is not installed or not in PATH.
+
+2️⃣ Check if Minikube Has Kubectl Inside
+Run:
+
+minikube kubectl -- get pods
+If this works, it means:
+
+✔ Kubernetes is running
+❌ kubectl binary is not installed globally.
+
+3️⃣ Install kubectl (Ubuntu Recommended Way)
+Run:
+
+sudo snap install kubectl --classic
+After installation check:
+
+kubectl version --client
+You should see version output.
+
+4️⃣ Alternative Installation (Official Kubernetes Method)
+If snap is not preferred:
+
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+Make it executable:
+
+chmod +x kubectl
+Move to system path:
+
+sudo mv kubectl /usr/local/bin/
+Test again:
+
+kubectl get nodes
+5️⃣ Start Your Cluster
+Now start Kubernetes:
+
+minikube start
+Check cluster:
+
+kubectl get nodes
+Expected output:
+
+NAME       STATUS   ROLES           AGE
+minikube   Ready    control-plane
+6️⃣ Very Useful Command (Debug)
+If anything fails:
+
+minikube status
+7️⃣ Important for Your Kubernetes Learning
+Your daily flow will always be:
+
+minikube start
+kubectl get nodes
+kubectl get pods
+kubectl apply -f deployment.yaml
+✅ If you want, I can also show you the 5 commands every DevOps engineer uses daily in Kubernetes (this will make learning much faster).
+
+///////////////////////Cluster, Node, kubectl/////////////////////////////////////////////
+Think of a Kubernetes cluster like a high-end restaurant. You have the manager, the kitchen staff, and the tools they use to make everything work smoothly.
+
+Here is the breakdown of the core infrastructure components in the format you requested:
+
+---
+
+## 1. The Cluster
+
+A **Cluster** is the entire set of nodes (machines) grouped together. It’s the "whole system" that runs your containerized applications. If one part of the system fails, the cluster ensures the app stays running elsewhere.
+
+* **Concept:** The collection of all resources (Master + Workers) working as a single unit.
+* **YAML:** Clusters aren't usually defined in a single YAML; they are created via cloud providers or CLI tools (like `minikube` or `kind`).
+* **Command:** `kubectl cluster-info`
+
+---
+
+## 2. The Node
+
+A **Node** is a single machine (virtual or physical) within the cluster.
+
+* **Control Plane (Master Node):** The "brain" that decides which apps run where.
+* **Worker Node:** The "muscle" that actually runs your Docker containers.
+* **Concept:** A worker machine in Kubernetes where your Pods live.
+* **YAML:** You don't usually write YAML to "create" a node; you join nodes to a cluster. However, you can use YAML to add **Labels** to a node.
+* **Command:** `kubectl get nodes` (To see all machines in your cluster)
+
+---
+
+## 3. kubectl
+
+**kubectl** (pronounced "koob-control" or "koob-cuttle") is the Command Line Interface (CLI) you use to talk to your cluster. It’s like the remote control for your entire infrastructure.
+
+* **Concept:** The bridge between you (the human) and the Kubernetes API.
+* **YAML:** `kubectl` is the tool that *reads* your YAML files and tells the cluster to make them real.
+* **Command Format:** `kubectl [action] [resource] [flags]`
+* Example: `kubectl get pods`
+* Example: `kubectl apply -f myfile.yaml`
+
+
+
+---
+
+### Comparison for Quick Learning
+
+| Term | Role | Real-world Analogy |
+| --- | --- | --- |
+| **Cluster** | The System | The entire Restaurant |
+| **Node** | The Machine | A specific Kitchen Station |
+| **kubectl** | The Interface | The Order Ticket / Manager's Tablet |
+
+---
+
+### How they work together
+
+1. You write a **YAML** file.
+2. You use **kubectl** to send that file to the **Cluster**.
+3. The Cluster's Control Plane looks at the file and picks a **Node** to run your app.
+
+Since you have your image on Docker Hub, would you like to try a "Port Forward" command to see your app running on your local browser without setting up a full Service yet?
+
+
+
+
+
+
+| Day | Focus | Learnings | Failure Scenarios & Fixes |
+| --- | --- | --- | --- |
+| **9** | K8s Architecture | Understanding Control Plane vs Worker Nodes. | **Error:** Node Status "NotReady". **Fix:** Check if the `kubelet` service is running on the worker. |
+| **9** | Docker vs K8s | Docker = Container; K8s = Container Manager. | **Note:** K8s doesn't replace Docker; it uses it (or a runtime like it) to run the pods. |
+
+---
+
+**Would you like me to show you the "Deployment" concept next, which shows how the Controller Manager automatically restarts your app if it fails?**
+
+
+///////////////////////////////////Build a docker image of our code////////////////////////////////
+
+
+Step 3 — Containerize onsapp
+Create Docker image.
+Tasks:
+Write Dockerfile
+Build image
+Push to DockerHub
+Commands:
+docker build
+docker push
+Outcome:
+Application ready for Kubernetes.
+
+Docker login:
+
+
+Since the previous error showed that Docker couldn't find `survey-app:latest`, we need to make sure we are targeting the correct local image name.
+
+Here is the flow to **build**, **tag**, and **push** in the format you requested:
+
+---
+
+## 1. Create the Image (Build)
+
+Before you can tag, you must have a local image. We will build your Spring Boot app and name it `survey-app` locally.
+
+* **Concept:** Converting your source code and Dockerfile into a runnable image.
+* **Command:**
+```bash
+# Run this in your project root folder
+docker build -t survey-app .
+
+```
+
+
+
+---
+
+## 2. Create the Tag
+
+Now that `survey-app` exists on your machine, you need to give it a "nickname" that Docker Hub understands (which includes your username and the version `v3`).
+
+* **Concept:** Mapping a local image name to a Remote Repository name and Version.
+* **Command Format:** `docker tag [local-image] [username]/[repo]:[tag]`
+* **Command:**
+```bash
+docker tag survey-app hansyy/survey-app:v3
+
+```
+
+
+
+---
+
+## 3. Push the Image
+
+Now that the image is tagged for your account, you send it to the cloud.
+
+* **Concept:** Uploading the tagged image to your Docker Hub repository.
+* **Command Format:** `docker push [username]/[repo]:[tag]`
+* **Command:**
+```bash
+docker push hansyy/survey-app:v3
+
+```
+
+
+
+---
+
+### Summary Checklist
+
+| Action | Command | Purpose |
+| --- | --- | --- |
+| **Login** | `echo "YOUR_TOKEN" | docker login -u hansyy --password-stdin` |
+| **Build** | `docker build -t survey-app .` | Create the image from code. |
+| **Tag** | `docker tag survey-app hansyy/survey-app:v3` | Prepare for Docker Hub naming. |
+| **Push** | `docker push hansyy/survey-app:v3` | Upload to the cloud. |
+
+---
+
+### Verify it Worked
+
+After pushing, you can run this command to see the image on your Docker Hub (via CLI):
+`docker manifest inspect hansyy/survey-app:v3`
+
+**Now that your v3 image is in the cloud, would you like me to show you how to update your Kubernetes Deployment to use this specific version?**
+
+
+Step 4 — Deploy First Pod
+Create pod YAML.
+Deploy onsapp.
+Commands:
+kubectl apply
+kubectl get pods
+Outcome:
+Understand basic Kubernetes workload.
+Failure scenario:
+Wrong image → ImagePullBackOff.
+
+Now that your image `hansyy/survey-app:v3` is safely in Docker Hub, it’s time to tell Kubernetes to go grab it and run it.
+
+Here is the breakdown for **Step 4** in the format you requested.
+
+---
+
+## 1. The Pod Concept
+
+A **Pod** is the smallest unit in Kubernetes. Think of it as a logical host for your Spring Boot container. When you "deploy" a Pod, Kubernetes finds a **Node** with enough space and pulls your image from Docker Hub.
+
+* **Concept:** The basic execution unit that wraps your container.
+* **YAML (`pod.yaml`):**
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: survey-app-pod
+  labels:
+    app: survey
+spec:
+  containers:
+  - name: survey-container
+    image: hansyy/survey-app:v3   # The image you just pushed!
+    ports:
+    - containerPort: 8080         # Spring Boot's default port
+
+```
+
+
+* **Command:** ```bash
+kubectl apply -f pod.yaml
+```
+
+
+```
+
+
+
+---
+
+## 2. Status Check
+
+After applying the YAML, you need to see if Kubernetes successfully pulled the image from Docker Hub.
+
+* **Concept:** Monitoring the lifecycle of the Pod (Pending -> ContainerCreating -> Running).
+* **Command:** ```bash
+kubectl get pods
+```
+
+
+```
+
+
+
+---
+
+## 3. Failure Scenario: ImagePullBackOff
+
+If you make a typo in the image name (e.g., `hansyy/survey-app:v4` which doesn't exist yet), the Pod will show a status of **ImagePullBackOff**.
+
+* **Concept:** Kubernetes tried to pull the image, failed, and is now waiting before trying again.
+* **How to Debug:**
+```bash
+kubectl describe pod survey-app-pod
+
+```
+
+
+*(Look at the "Events" section at the bottom; it will tell you exactly why the pull failed.)*
+
+---
+
+### Summary Checklist for Step 4
+
+| Task | Command | Goal |
+| --- | --- | --- |
+| **Deploy** | `kubectl apply -f pod.yaml` | Start the app in the cluster. |
+| **Verify** | `kubectl get pods` | Ensure Status is `Running`. |
+| **Troubleshoot** | `kubectl describe pod <name>` | Find out why it's failing. |
+| **View Output** | `kubectl logs survey-app-pod` | See your Spring Boot startup logs. |
+
+---
+
+**Would you like me to show you how to "Port Forward" this Pod so you can actually open your Spring Boot survey app in your browser on `localhost`?**
+
+Fixing database error loading in container logs:
+
+what did we do?
+It is great to see the app moving forward. Here is a retrospective of what happened with your Spring Boot app and how we resolved the blockers, organized in your preferred learning format.
+
+---
+
+## 1. Concept: Pod Logs & Debugging
+
+When a Pod is "Running" but the app isn't working, we check the logs to see the "inside" of the container.
+
+* **Observation:** The Pod started, but the Spring Boot logs showed an `UnsatisfiedDependencyException`.
+* **Root Cause:** Spring Boot was looking for a database connection string but found none, causing the application context to fail.
+* **Command:** ```bash
+kubectl logs survey-app-pod
+```
+
+
+```
+
+
+
+---
+
+## 2. Concept: Environment Variables (Runtime Config)
+
+Kubernetes can inject settings into a container at startup without you changing a single line of code.
+
+* **Observation:** The app failed because it had no database URL or driver specified.
+* **Fix:** We added an `env` section to the `pod.yaml` to tell Spring Boot to use an in-memory H2 database.
+* **YAML (The Fix):**
+```yaml
+spec:
+  containers:
+  - name: survey-container
+    env:
+    - name: SPRING_DATASOURCE_URL
+      value: "jdbc:h2:mem:testdb"
+
+```
+
+
+
+---
+
+## 3. Concept: Container Classpath (The Library Issue)
+
+A container only contains exactly what you put in it during the `docker build` process.
+
+* **Observation:** After adding the environment variables, the log changed to: `java.lang.IllegalStateException: Cannot load driver class: org.h2.Driver`.
+* **Root Cause:** The H2 Database driver (the `.jar` file) was missing from your original Docker image because it wasn't in your `pom.xml`.
+* **Fix:** Added the H2 dependency to the project, rebuilt the jar, and pushed a new image version (`v4`) to Docker Hub.
+* **Command:**
+```bash
+docker build -t hansyy/survey-app:v4 .
+docker push hansyy/survey-app:v4
+
+```
+
+
+
+---
+
+## 4. Concept: YAML Syntax & Validation
+
+Kubernetes YAML files use strict indentation for hierarchy.
+
+* **Observation:** Error: `error converting YAML to JSON: yaml: line 27: did not find expected key`.
+* **Root Cause:** A formatting error (likely a Tab or mismatched spaces) made the file unreadable to the Kubernetes API.
+* **Fix:** Cleaned the indentation to ensure a consistent 2-space structure throughout the file.
+* **Command:**
+```bash
+kubectl apply -f pod.yaml
+
+```
+
+
+
+---
+
+### Current Status Summary
+
+| Phase | Status | Action Taken |
+| --- | --- | --- |
+| **Code** | ✅ Fixed | Added H2 dependency to `pom.xml`. |
+| **Docker** | ✅ Fixed | Pushed `hansyy/survey-app:v4` to Docker Hub. |
+| **K8s Pod** | ✅ Fixed | Applied `pod.yaml` with correct `env` and `image:v4`. |
+
+**Since your Pod is now running correctly, would you like me to show you how to use a "Service" to open the app in your browser permanently?**
+
+
+///////////////Difference between Imagepullbackof, containerunning, crashloopbackoff? ////////////////////////
+
+When working with Kubernetes, understanding these three statuses is the key to identifying where your deployment pipeline is broken.
+
+---
+
+## 1. ContainerCreating
+
+This is a **temporary** and healthy state. It means Kubernetes has decided which node to use and is currently setting up the environment.
+
+* **Concept:** The "Preparation" phase.
+* **What’s happening:** Kubernetes is pulling the image from Docker Hub and creating the network interface/volumes.
+* **Status:** Normally turns to `Running` within seconds.
+* **Command to check progress:** ```bash
+kubectl describe pod <pod-name>
+```
+
+
+```
+
+
+
+---
+
+## 2. ImagePullBackOff
+
+This is a **Network/Authentication** error. Kubernetes tried to get your image from Docker Hub but failed. "BackOff" means it failed once and is waiting a bit before trying again.
+
+* **Concept:** The "I can't find the package" phase.
+* **Common Causes:** * Typo in the image name or tag (e.g., `v3` vs `v33`).
+* The repository is private and you haven't provided credentials.
+* The image doesn't exist on Docker Hub yet.
+
+
+* **YAML fix:** Check the `image:` line in your `pod.yaml`.
+* **Command to debug:** ```bash
+kubectl get events
+```
+
+
+```
+
+
+
+---
+
+## 3. CrashLoopBackOff
+
+This is an **Application** error. Kubernetes successfully pulled the image and started the container, but the **code inside** crashed and exited.
+
+* **Concept:** The "I started, but I died" phase.
+* **Common Causes:** * The issue you just had: Missing database configurations.
+* Java/Spring Boot runtime exceptions.
+* The application finished its task and exited (K8s expects containers to run forever).
+
+
+* **Status:** The pod tries to restart, crashes again, waits longer, and repeats.
+* **Command to debug (The only way to see the error):** ```bash
+kubectl logs <pod-name>
+```
+
+
+```
+
+
+
+---
+
+### Summary Table for Learning
+
+| Status | Where is the problem? | Analogy |
+| --- | --- | --- |
+| **ContainerCreating** | System is working | The chef is getting the ingredients ready. |
+| **ImagePullBackOff** | Docker Hub / Registry | The grocery store is closed or doesn't have the ingredient. |
+| **CrashLoopBackOff** | Your Spring Boot Code | The chef started cooking but the stove exploded. |
+
+---
+
+### How to move from CrashLoopBackOff to Running
+
+Since you are currently seeing your app start but fail, you are dealing with **CrashLoopBackOff**. Your next step is to ensure your `pod.yaml` has the correct environment variables we discussed.
+
+**Would you like me to show you how to set up a "Readiness Probe" so Kubernetes knows exactly when your Spring Boot app is actually ready to take traffic?**
+
+
+Step 5 — Logs and Debugging
+Learn:
+kubectl logs
+kubectl exec
+kubectl describe
+Outcome:
+Basic troubleshooting.
+
+Since your Spring Boot app is now running with the database loaded, this is the perfect time to master the "Survival Trio" of Kubernetes troubleshooting. These commands allow you to see what the app is saying, go inside the container, and see what the cluster thinks of the Pod.
+
+---
+
+## 1. kubectl logs
+
+This command shows you the **STDOUT** and **STDERR** of your application. Since your app is Spring Boot, this is where you see the Tomcat startup, Hibernate queries, and Java stack traces.
+
+* **Concept:** Viewing the application's internal "diary" or output stream.
+* **YAML:** No specific YAML needed, but you can configure how much log history is kept in the container engine.
+* **Command:**
+```bash
+# View current logs
+kubectl logs survey-app-pod
+
+# "Follow" the logs (live stream as they happen)
+kubectl logs -f survey-app-pod
+
+# View logs if the pod crashed and restarted (previous instance)
+kubectl logs survey-app-pod --previous
+
+```
+
+
+
+---
+
+## 2. kubectl exec
+
+This command lets you open an interactive terminal **inside** the running container. It is like SSH-ing into your app's little world.
+
+* **Concept:** Remote execution of commands inside a container.
+* **YAML:** Your container must have a shell (like `sh` or `bash`) included in the image for this to work.
+* **Command:**
+```bash
+# Open an interactive bash shell inside the pod
+kubectl exec -it survey-app-pod -- /bin/bash
+
+# If bash isn't available, try sh
+kubectl exec -it survey-app-pod -- /bin/sh
+
+# Run a single command (e.g., check files) without entering
+kubectl exec survey-app-pod -- ls /app
+
+```
+
+
+
+---
+
+## 3. kubectl describe
+
+While `logs` tells you what the **app** is doing, `describe` tells you what **Kubernetes** is doing with that Pod.
+
+* **Concept:** Detailed inspection of the Kubernetes resource state and event history.
+* **YAML:** This displays the data defined in your YAML plus real-time status updates.
+* **Command:**
+```bash
+kubectl describe pod survey-app-pod
+
+```
+
+
+* **What to look for:** Scroll to the bottom and look at the **Events** section. It will show you exactly when the image was pulled, if the container started, or if it failed to schedule because of low memory.
+
+---
+
+### Troubleshooting Cheat Sheet
+
+| If you see... | Use this command first | Why? |
+| --- | --- | --- |
+| **CrashLoopBackOff** | `kubectl logs` | To see the Java exception/error message. |
+| **ImagePullBackOff** | `kubectl describe` | To see if the error is a 404 (wrong name) or 401 (auth error). |
+| **"App is running but can't find a file"** | `kubectl exec` | To manually check if the file exists in the folder. |
+| **Pending Status** | `kubectl describe` | To see if your cluster is out of CPU or RAM. |
+
+---
+
+### Practical Exercise for you:
+
+Try to `exec` into your pod and check if your Spring Boot `.jar` file is where you expect it to be.
+`kubectl exec -it survey-app-pod -- ls -l`
+
+**Would you like me to show you how to combine these commands into a single "Watch" command so you can monitor your pod status in real-time while you make changes?**
+
+
+
+Step 6 — Deployments
+Create Deployment.
+Learn:
+ReplicaSets
+pod replication
+Practice:
+Scale pods.
+Outcome:
+Application becomes highly available.
+
+In Step 4, you deployed a single Pod. While that works, if that Pod crashes or the Node it's on fails, your app goes down. **Deployments** solve this by managing **ReplicaSets**, which ensure a specific number of Pods are always running.
+
+---
+
+## 1. The Deployment & ReplicaSet
+
+A **Deployment** is a high-level object that manages a **ReplicaSet**. The ReplicaSet is the "watchdog" that ensures the actual number of running Pods matches your desired number.
+
+* **Concept:** Declarative updates for Pods and ReplicaSets to ensure high availability.
+* **YAML (`deployment.yaml`):**
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: survey-app-deployment
+spec:
+  replicas: 3               # This is pod replication: 3 copies running!
+  selector:
+    matchLabels:
+      app: survey           # Tells Deployment which Pods to manage
+  template:                 # This is the "cookie cutter" for the Pods
+    metadata:
+      labels:
+        app: survey         # MUST match the selector above
+    spec:
+      containers:
+      - name: survey-container
+        image: hansyy/survey-app:v4
+        ports:
+        - containerPort: 8080
+        env:                # Re-using your working H2 config
+        - name: SPRING_DATASOURCE_URL
+          value: "jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1"
+        - name: SPRING_DATASOURCE_DRIVER_CLASS_NAME
+          value: "org.h2.Driver"
+
+```
+
+* **Command:** `kubectl apply -f deployment.yaml`
+
+---
+
+## 2. Pod Replication
+
+Because you set `replicas: 3`, Kubernetes will talk to the scheduler and find spots for three identical Pods across your nodes.
+
+* **Concept:** Running multiple instances of the same application to share load and handle failures.
+* **Command:** ```bash
+kubectl get pods -l app=survey
+```
+*(You will now see three different pod names starting with `survey-app-deployment-...`)*
+
+
+```
+
+
+
+---
+
+## 3. Scaling Pods (Practice)
+
+One of the most powerful features of Kubernetes is the ability to scale up (for high traffic) or scale down (to save money) in seconds.
+
+* **Concept:** Increasing or decreasing the number of replicas dynamically.
+* **Command (Imperative - for quick changes):**
+```bash
+# Scale up to 5 pods
+kubectl scale deployment survey-app-deployment --replicas=5
+
+```
+
+
+* **Command (Declarative - the better way):**
+* Change `replicas: 3` to `replicas: 5` in your `deployment.yaml` file.
+* Run `kubectl apply -f deployment.yaml`.
+
+
+
+---
+
+### Summary Checklist
+
+| Component | Role | Analogy |
+| --- | --- | --- |
+| **Deployment** | The Manager | Decides how many staff members should be working. |
+| **ReplicaSet** | The Supervisor | Constantly counts the staff to make sure nobody left. |
+| **Pod** | The Worker | The actual container running your Spring Boot code. |
+
+---
+
+### Observation Exercise
+
+Try this to see High Availability in action:
+
+1. Run `kubectl get pods`.
+2. Delete one of the pods manually: `kubectl delete pod <name-of-one-pod>`.
+3. Quickly run `kubectl get pods` again.
+4. **Observation:** You will see a new pod being created immediately to replace the one you killed. That is the ReplicaSet doing its job!
+
+**Now that you have multiple pods running, would you like me to show you how to use a "Service" to balance the traffic across all 3 replicas?**
+
+
+Step 7 — Rolling Updates
+Deploy new version of onsapp.
+Commands:
+kubectl rollout status
+kubectl rollout history
+kubectl rollout undo
+Outcome:
+Understand safe upgrades.
+
+Yes, you absolutely can roll back to **v3**, but there is a small "catch" you need to understand about how Kubernetes remembers its history.
+
+---
+
+## 1. The Concept: Rollback Strategy
+
+Kubernetes keeps a history of your **Deployment changes**, not just a list of images in Docker Hub. If you previously deployed `v3` using the `kubectl apply` command on that same Deployment, it will be in your "Revision History."
+
+* **Concept:** Reverting the Deployment to a specific state stored in the cluster's memory.
+* **Command (To see if v3 is in the history):**
+```bash
+kubectl rollout history deployment/survey-app-deployment
+
+```
+
+
+* **Command (To roll back):**
+```bash
+# If v3 was your previous version:
+kubectl rollout undo deployment/survey-app-deployment
+
+# If v3 was a few versions ago (e.g., Revision 1):
+kubectl rollout undo deployment/survey-app-deployment --to-revision=1
+
+```
+
+
+
+---
+
+## 2. The Concept: Manual Revert (The Safest Way)
+
+If you deleted your Deployment or if the history was cleared, the "Undo" command might not find `v3`. In that case, you simply update your YAML file back to the old version.
+
+* **Concept:** Explicitly defining the desired state as a previous version.
+* **YAML (`deployment.yaml`):**
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: survey-app-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: survey
+  template:
+    metadata:
+      labels:
+        app: survey
+    spec:
+      containers:
+      - name: survey-container
+        image: hansyy/survey-app:v3  # Simply change v5 back to v3
+        ports:
+        - containerPort: 8080
+        env:
+        - name: SPRING_DATASOURCE_URL
+          value: "jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1"
+        # ... keep the rest of your env vars ...
+
+```
+
+
+* **Command:** ```bash
+kubectl apply -f deployment.yaml
+```
+
+
+```
+
+
+
+---
+
+### Comparison: Undo vs. Apply
+
+| Method | When to use? | Why? |
+| --- | --- | --- |
+| **`kubectl rollout undo`** | Emergency / Quick Fix | It's instant and doesn't require editing files. |
+| **`kubectl apply -f ...`** | Planned Revert | Keeps your local YAML files synced with what is actually running. |
+
+---
+
+### Critical Check
+
+Before you roll back to `v3`, remember our earlier troubleshooting: **Does your v3 image have the H2 database driver inside it?** If you added the H2 dependency only in `v4`, rolling back to `v3` will cause the app to crash again with that `java.lang.IllegalStateException: Cannot load driver class: org.h2.Driver` error.
+
+**Would you like me to show you how to check the image labels of v3 to see exactly when it was built before you pull the trigger on the rollback?**
+
+
+Step 8 — Services
+Expose deployment.
+Types:
+ClusterIP
+NodePort
+Outcome:
+Application accessible via stable endpoint.
+Failure scenario:
+Wrong selector.
+
+Since your deployment is currently "unchanged," it means the Pods are running, but they are still isolated. **Services** are the "entry points" that provide a stable network name and IP address to your ephemeral Pods.
+
+---
+
+## 1. ClusterIP (Internal Only)
+
+This is the default service type. It provides an IP address that is **only reachable from within the cluster**. Use this for your database or internal microservices that shouldn't be exposed to the internet.
+
+* **Concept:** Internal load balancing and service discovery.
+* **YAML (`service-clusterip.yaml`):**
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: survey-internal-service
+spec:
+  type: ClusterIP
+  selector:
+    app: survey      # Matches the label in your Deployment
+  ports:
+    - protocol: TCP
+      port: 80       # Port the Service listens on
+      targetPort: 8080 # Port your Spring Boot app listens on
+
+```
+
+
+* **Command:** `kubectl apply -f service-clusterip.yaml`
+
+---
+
+## 2. NodePort (External Access)
+
+This opens a specific port on **every Node** in your cluster. Traffic sent to that port is forwarded to your Service. This is the easiest way to access your app from your laptop's browser.
+
+* **Concept:** Exposing a service on a static port (30000-32767) on each Node's IP.
+* **YAML (`service-nodeport.yaml`):**
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: survey-external-service
+spec:
+  type: NodePort
+  selector:
+    app: survey
+  ports:
+    - port: 8080
+      targetPort: 8080
+      nodePort: 30001  # You can pick a port between 30000-32767
+
+```
+
+
+* **Command:** `kubectl apply -f service-nodeport.yaml`
+
+---
+
+## 3. Failure Scenario: Wrong Selector
+
+This is the most common reason a Service fails. If the `selector` in your Service YAML doesn't **exactly** match the `labels` in your Deployment's Pod template, the Service won't know which Pods to send traffic to.
+
+* **Observation:** You hit the URL, but you get a "404" or "Connection Refused," and `kubectl get endpoints` shows `<none>`.
+* **The Fix:** 1. Check Pod labels: `kubectl get pods --show-labels`
+2. Check Service selector: `kubectl describe svc survey-external-service`
+3. Ensure they match perfectly.
+
+---
+
+### Summary Checklist
+
+| Type | Accessibility | Best For |
+| --- | --- | --- |
+| **ClusterIP** | Inside Cluster Only | Databases, Auth services, Internal APIs. |
+| **NodePort** | External (via Node IP) | Local development and testing. |
+| **LoadBalancer** | External (via Cloud LB) | Production environments. |
+
+---
+
+### Practice Task:
+
+1. Apply the **NodePort** YAML above.
+2. Run `kubectl get svc` to see the mapping.
+3. Open your browser to `http://localhost:30001`.
+
+**Would you like me to show you the `kubectl get endpoints` command so you can see exactly which Pod IPs your Service is currently talking to?**
+
+///////////////If you dont know how to open app follow follwoing based on kubernetes loading/////////////////////////
+
+It sounds like you've hit the most common hurdle in Kubernetes networking. Even though the Service is configured for port **30000**, your computer might not know how to "see" into the Kubernetes cluster's network.
+
+Depending on whether you are using **Minikube** or **Docker Desktop**, the fix is different.
+
+---
+
+## 1. If you are using Minikube (Most Likely)
+
+Minikube runs inside a virtual machine or a separate Docker container. `localhost` on your browser doesn't automatically point to that virtual machine.
+
+* **The Problem:** The IP address of the Node is not `127.0.0.1` (localhost); it's the internal IP of the Minikube VM.
+* **The Fix:** Open a **new terminal** and run:
+```bash
+minikube service survey-external-service
+
+```
+
+
+*This command will automatically open your browser to the correct IP and Port.*
+
+---
+
+## 2. If you are using Docker Desktop
+
+Docker Desktop *does* map things to `localhost`, so if it's failing here, it's usually a "Selector" mismatch.
+
+* **The Problem:** The Service exists, but it hasn't "found" any Pods to talk to.
+* **How to Verify:** Run this command:
+```bash
+kubectl get endpoints survey-external-service
+
+```
+
+
+* **What to look for:** * If you see `<none>` or an empty list under `ENDPOINTS`, your **Service Selector** does not match your **Pod Labels**.
+* If you see IP addresses, the Service is working, and the issue is likely a firewall or the app crashing inside.
+
+
+
+---
+
+## 3. The Failure Scenario: Checking the Selector
+
+Let's double-check your labels. If these don't match perfectly, the site will never load.
+
+* **Step A: Check your Pod labels**
+```bash
+kubectl get pods --show-labels
+
+```
+
+
+*Look for `app=survey`.*
+* **Step B: Check your Service selector**
+```bash
+kubectl describe svc survey-external-service
+
+```
+
+
+*Look for `Selector: app=survey`.*
+
+---
+
+### Comparison Table for Accessing the App
+
+| Platform | Access URL | Troubleshooting Command |
+| --- | --- | --- |
+| **Minikube** | `minikube ip` + `:30000` | `minikube service <name> --url` |
+| **Docker Desktop** | `localhost:30000` | `kubectl get endpoints` |
+| **Linux (Bare Metal)** | `Node-IP:30000` | `hostname -I` |
+
+---
+
+### Quick Fix Attempt
+
+If you just want to see the app **right now** while we debug the Service, use this temporary tunnel:
+
+```bash
+kubectl port-forward deployment/survey-app-deployment 8080:8080
+
+```
+
+Then go to `http://localhost:8080`.
+
+**Can you run `kubectl get endpoints survey-external-service` and tell me if you see an IP address listed there or if it says `<none>`?**
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,42 @@
+---
+- name: Advanced Logic Playbook
+  hosts: all
+  become: false
+  
+  tasks:
+    # --- LOOPS (The 'loop' keyword) ---
+    - name: 1. Create multiple project folders using a Loop
+      file:
+        path: "/tmp/{{ item }}"
+        state: directory
+      loop:
+        - copilotons_logs
+        - copilotons_data
+        - copilotons_config
+
+    # --- CONDITIONALS (The 'when' keyword) ---
+    - name: 2. Task for WEB group only
+      debug:
+        msg: "I am a Web Server for {{ project_name }}"
+      when: "'web' in group_names"
+
+    - name: 3. Task for DB group only
+      debug:
+        msg: "I am the Database for {{ project_name }}"
+      when: "'db' in group_names"
+
+    # --- COMBINING LOOPS & HANDLERS ---
+    - name: 4. Create multiple config files and notify handler
+      copy:
+        content: "Config for {{ item }}"
+        dest: "/tmp/copilotons_config/{{ item }}.conf"
+      loop:
+        - auth
+        - network
+        - storage
+      notify: Final Sync
+
+  handlers:
+    - name: Final Sync
+      debug:
+        msg: "All configs created. Running final system synchronization..."

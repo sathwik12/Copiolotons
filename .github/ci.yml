@@ -1,0 +1,17 @@
+name: Survey App Build
+on:
+  push:
+    branches: [ "main" ]  # The robot wakes up when you push to 'main'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Copy my code
+        uses: actions/checkout@v4
+
+      - name: Build the Docker Image
+        run: docker build -t survey-app-image:latest .
+
+      - name: Proof it worked
+        run: docker images

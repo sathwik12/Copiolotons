@@ -1,0 +1,28 @@
+---
+- name: Deploy Copilotons to Kubernetes
+  hosts: localhost
+  connection: local
+
+  tasks:
+    - name: Create a Namespace for Copilotons
+      kubernetes.core.k8s:
+        name: copilotons-space
+        api_version: v1
+        kind: Namespace
+        state: present
+
+    - name: Deploy Nginx Pod
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Pod
+          metadata:
+            name: copilotons-web
+            namespace: copilotons-space
+          spec:
+            containers:
+            - name: nginx
+              image: nginx:latest
+              ports:
+              - containerPort: 80

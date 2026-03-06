@@ -1,0 +1,30 @@
+---
+- name: Mastering Handlers and Idempotency
+  hosts: all
+  become: false
+
+  tasks:
+    - name: 1. Ensure the config directory exists
+      file:
+        path: /tmp/copilotons_config
+        state: directory
+
+    - name: 2. Create the Configuration File
+      copy:
+        content: |
+          Project: {{ project_name }}
+          Status: {{ app_status }}
+          Version: {{ config_version }}
+        dest: /tmp/copilotons_config/settings.conf
+      # This is the trigger. It only signals if the file content changes.
+      notify: Restart Copilotons Service
+
+    - name: 3. A simple task that always runs but never changes
+      command: uptime
+      changed_when: false
+
+  handlers:
+    # This task only runs if notified by Task 2
+    - name: Restart Copilotons Service
+      debug:
+        msg: "HANDLER TRIGGERED: Service is restarting because the config was updated."

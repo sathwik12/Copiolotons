@@ -1,0 +1,10 @@
+---
+- name: Testing the Copilotons Safe
+  hosts: web
+  vars_files:
+    - secrets.yml  # This tells Ansible to look inside your encrypted file
+
+  tasks:
+    - name: Use the secret variable
+      debug:
+        msg: "The secret database password is: {{ db_password }}"

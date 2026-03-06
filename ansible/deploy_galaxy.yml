@@ -1,0 +1,12 @@
+---
+- name: Use Community Roles
+  hosts: web
+  become: false
+  
+  # Global vars for the community role
+  vars:
+    nginx_remove_default_vhost: true
+
+  roles:
+    - geerlingguy.nginx
+    - geerlingguy.git

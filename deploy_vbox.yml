@@ -1,0 +1,24 @@
+---
+- name: Emergency Deployment (Bypassing Python Errors)
+  hosts: vbox_vms
+  gather_facts: no
+  become: yes
+
+  tasks:
+    - name: Install Java via Raw
+      raw: apt-get update && apt-get install -y openjdk-17-jdk
+
+    - name: Create directory via Raw
+      raw: mkdir -p /opt/copiloton && chown ansibleadmin:ansibleadmin /opt/copiloton
+
+    - name: Transfer JAR (Using SCP directly)
+      # Since 'copy' is failing due to Python, we use a local shell command to SCP it
+      local_action: shell scp -P 2222 ./target/onsathwiklearning-1.0-SNAPSHOT.jar ansibleadmin@127.0.0.1:/opt/copiloton/app.jar
+      become: no
+
+    - name: Create Systemd Service via Raw
+      raw: |
+        printf "[Unit]\nDescription=Copiloton Java Service\nAfter=network.target\n\n[Service]\nUser=ansibleadmin\nExecStart=/usr/bin/java -jar /opt/copiloton/app.jar\nRestart=always\n\n[Install]\nWantedBy=multi-user.target" > /etc/systemd/system/copiloton.service
+
+    - name: Start Service via Raw
+      raw: systemctl daemon-reload && systemctl enable copiloton && systemctl restart copiloton

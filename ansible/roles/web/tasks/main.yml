@@ -1,0 +1,11 @@
+---
+- name: 1. Install Web Directory
+  file:
+    path: /tmp/copilotons_web
+    state: directory
+
+- name: 2. Deploy Index Template
+  template:
+    src: index.html.j2
+    dest: /tmp/copilotons_web/index.html
+  notify: Log Deployment

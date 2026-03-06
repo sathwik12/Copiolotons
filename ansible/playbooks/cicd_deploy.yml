@@ -1,0 +1,24 @@
+---
+- name: 19. CI/CD Simulation for Copilotons
+  hosts: localhost
+  connection: local
+
+  tasks:
+    - name: 1. Ensure the Deployment Directory exists
+      file:
+        path: "/tmp/copilotons_release"
+        state: directory
+
+    - name: 2. Deploy Version from CI/CD Variable
+      copy:
+        content: "Deployed Version: {{ app_version }}"
+        dest: "/tmp/copilotons_release/version.txt"
+
+    - name: 3. Verify the Deployment (Simulating a Smoke Test)
+      command: cat /tmp/copilotons_release/version.txt
+      register: deploy_check
+      changed_when: false
+
+    - name: 4. Show Output
+      debug:
+        msg: "Deployment Successful! System is now at: {{ deploy_check.stdout }}"

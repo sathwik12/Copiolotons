@@ -1,0 +1,38 @@
+---
+- name: Mastering Loops and Conditionals
+  hosts: all
+  become: false
+
+  tasks:
+    # --- STEP 1: THE LOOP ---
+    # Instead of 3 tasks, we use 1 task with a list.
+    - name: Create multiple project folders
+      file:
+        path: "/tmp/{{ item }}"
+        state: directory
+      loop:
+        - copilotons_assets
+        - copilotons_reports
+        - copilotons_backup
+
+    # --- STEP 2: THE CONDITIONAL (Group based) ---
+    - name: "Web Server Special Task"
+      debug:
+        msg: "Installing Nginx configurations for {{ inventory_hostname }}"
+      when: "'web' in group_names"
+
+    # --- STEP 3: THE CONDITIONAL (Variable based) ---
+    - name: "Specific Task for RedHat Servers"
+      debug:
+        msg: "Running RedHat specific command on {{ inventory_hostname }}"
+      # This task will SKIP web01 and db01 because they are Ubuntu
+      when: os_type == "RedHat"
+
+    # --- STEP 4: COMBINING BOTH ---
+    - name: Loop through items but ONLY for Web servers
+      debug:
+        msg: "Setting up {{ item }} on web server"
+      loop:
+        - firewall
+        - ssl_cert
+      when: "'web' in group_names"

@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: survey-app-pod
+  labels:
+    app: survey
+spec:
+  containers:
+  - name: survey-container
+    image: hansyy/survey-app:v4   # Updated to v4
+    ports:
+    - containerPort: 8080
+    env:
+    - name: SPRING_DATASOURCE_URL
+      value: "jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1"
+    - name: SPRING_DATASOURCE_DRIVER_CLASS_NAME
+      value: "org.h2.Driver"
+    - name: SPRING_DATASOURCE_USERNAME
+      value: "sa"
+    - name: SPRING_DATASOURCE_PASSWORD
+      value: ""
+    - name: SPRING_JPA_DATABASE_PLATFORM
+      value: "org.hibernate.dialect.H2Dialect"
+    # Added this to help Spring create tables automatically
+    - name: SPRING_H2_CONSOLE_ENABLED
+      value: "true"
+    - name: SPRING_JPA_HIBERNATE_DDL_AUTO
+      value: "update"

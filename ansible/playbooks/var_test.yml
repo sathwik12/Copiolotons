@@ -1,0 +1,29 @@
+---
+- name: Variable Precedence Mastery
+  hosts: web
+  become: false
+  
+  # Level 4: Playbook Vars (Overrides Inventory)
+  vars:
+    project_name: "Copilotons_Playbook_Internal"
+
+  # Loading variables from an external file
+  vars_files:
+    - external_vars.yml
+
+  tasks:
+    - name: 1. Show Project Name (Should show Playbook version, not Inventory)
+      debug:
+        msg: "Project Name is: {{ project_name }}"
+
+    - name: 2. Show Host Specific Variable (From hosts.ini)
+      debug:
+        msg: "This is host {{ inventory_hostname }} with ID {{ app_id }}"
+
+    - name: 3. Show Variable from External File
+      debug:
+        msg: "Database being used: {{ database_name }}"
+
+    - name: 4. Final Boss - Show Extra Var (Only works if passed in CLI)
+      debug:
+        msg: "The OVERRIDE value is: {{ override_me | default('No Override Used') }}"

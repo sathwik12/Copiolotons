@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: survey-app-deployment
+spec:
+  replicas: 2              # This is pod replication: 3 copies running!
+  selector:
+    matchLabels:
+      app: survey           # Tells Deployment which Pods to manage
+  template:                 # This is the "cookie cutter" for the Pods
+    metadata:
+      labels:
+        app: survey         # MUST match the selector above
+    spec:
+      containers:
+      - name: survey-container
+        image: hansyy/survey-app:v4
+        ports:
+        - containerPort: 8080
+        env:                # Re-using your working H2 config
+        - name: SPRING_DATASOURCE_URL
+          value: "jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1"
+        - name: SPRING_DATASOURCE_DRIVER_CLASS_NAME
+          value: "org.h2.Driver"

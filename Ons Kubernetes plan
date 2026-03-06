@@ -1,0 +1,333 @@
+Ons:
+Ons
+
+Whole kubernetes plan:
+Good. Now we will structure this exactly like a real DevOps engineer operating a containerized application (your onsapp Spring Boot app).
+We will divide learning into 3 phases, and each phase has clear steps and outcomes.
+This is the complete roadmap you will follow.
+
+Phase 1 — Kubernetes Foundations (Platform Basics)
+Goal:
+Understand how Kubernetes runs containerized applications.
+By end of this phase you must be able to:
+Containerize an app
+Deploy it
+Expose it
+Configure it
+Scale it
+Update it
+Debug failures
+Total steps: 15
+
+Step 1 — Setup Local Cluster
+Learn:
+What is cluster
+Node
+kubectl
+Practice:
+minikube start
+kubectl get nodes
+kubectl cluster-info
+Outcome:
+You can run Kubernetes locally.
+
+Step 2 — Kubernetes Architecture
+Learn components:
+API Server
+etcd
+Scheduler
+Controller Manager
+Kubelet
+Kube Proxy
+Practice:
+kubectl get pods -n kube-system
+Outcome:
+Understand how cluster works internally.
+
+Step 3 — Containerize onsapp
+Create Docker image.
+Tasks:
+Write Dockerfile
+Build image
+Push to DockerHub
+Commands:
+docker build
+docker push
+Outcome:
+Application ready for Kubernetes.
+
+Step 4 — Deploy First Pod
+Create pod YAML.
+Deploy onsapp.
+Commands:
+kubectl apply
+kubectl get pods
+Outcome:
+Understand basic Kubernetes workload.
+Failure scenario:
+Wrong image → ImagePullBackOff.
+
+Step 5 — Logs and Debugging
+Learn:
+kubectl logs
+kubectl exec
+kubectl describe
+Outcome:
+Basic troubleshooting.
+
+Step 6 — Deployments
+Create Deployment.
+Learn:
+ReplicaSets
+pod replication
+Practice:
+Scale pods.
+Outcome:
+Application becomes highly available.
+
+Step 7 — Rolling Updates
+Deploy new version of onsapp.
+Commands:
+kubectl rollout status
+kubectl rollout history
+kubectl rollout undo
+Outcome:
+Understand safe upgrades.
+
+Step 8 — Services
+Expose deployment.
+Types:
+ClusterIP
+NodePort
+Outcome:
+Application accessible via stable endpoint.
+Failure scenario:
+Wrong selector.
+
+Step 9 — Labels and Selectors
+Learn:
+pod labels
+service selectors
+Outcome:
+Understand Kubernetes internal routing.
+
+Step 10 — Namespaces
+Create environments.
+Examples:
+dev
+test
+prod
+Outcome:
+Workload isolation.
+
+Step 11 — ConfigMaps
+Externalize configuration.
+Example:
+Database URL.
+Outcome:
+Application config separated from container.
+
+Step 12 — Secrets
+Store sensitive data.
+Example:
+DB password.
+Outcome:
+Secure configuration.
+
+Step 13 — Resource Limits
+Define CPU/memory limits.
+Outcome:
+Cluster resource control.
+Failure scenario:
+OOMKilled pods.
+
+Step 14 — Health Probes
+Add:
+Liveness probe
+Readiness probe
+Outcome:
+Kubernetes detects unhealthy apps.
+
+Step 15 — Horizontal Pod Autoscaling
+Enable autoscaling.
+Outcome:
+Application scales automatically.
+
+Phase 2 — Production Operations (Real DevOps Work)
+Goal:
+Operate Kubernetes workloads in production-like scenarios.
+Total steps: 12
+
+Step 16 — Persistent Storage
+Learn:
+Persistent Volumes
+Persistent Volume Claims
+Outcome:
+Stateful applications supported.
+
+Step 17 — Ingress Controller
+Expose application via HTTP.
+Learn:
+ingress resource
+ingress controller
+Outcome:
+External traffic routing.
+
+Step 18 — Helm
+Package application deployment.
+Commands:
+helm create
+helm install
+helm upgrade
+Outcome:
+Reusable deployments.
+
+Step 19 — Multi Environment Deployment
+Create:
+dev namespace
+staging namespace
+prod namespace
+Outcome:
+Environment management.
+
+Step 20 — Resource Quotas
+Limit resource usage per namespace.
+Outcome:
+Prevent resource exhaustion.
+
+Step 21 — Pod Disruption Budget
+Protect application during node maintenance.
+Outcome:
+Controlled availability.
+
+Step 22 — Deployment Strategies
+Learn:
+rolling deployment
+blue-green
+canary
+Outcome:
+Safer releases.
+
+Step 23 — Troubleshooting Practice
+Simulate issues:
+CrashLoopBackOff
+ImagePullBackOff
+OOMKilled
+Service unreachable
+Outcome:
+Production debugging skills.
+
+Step 24 — Node Maintenance
+Learn:
+kubectl cordon
+kubectl drain
+kubectl uncordon
+Outcome:
+Safe node upgrades.
+
+Step 25 — Cluster Monitoring Basics
+Learn:
+kubectl top
+Outcome:
+Observe CPU and memory usage.
+
+Step 26 — Scaling Under Load
+Simulate traffic spikes.
+Outcome:
+Understand autoscaling behaviour.
+
+Step 27 — Incident Handling
+Practice responding to outages.
+Example:
+Pods restarting repeatedly.
+Outcome:
+SRE incident response thinking.
+
+Phase 3 — DevOps Platform Engineering
+Goal:
+Operate Kubernetes as part of CI/CD platform.
+Total steps: 10
+
+Step 28 — CI/CD Pipeline for Kubernetes
+Pipeline flow:
+Code commit
+Build Docker image
+Push to registry
+Deploy to Kubernetes
+Outcome:
+Automated deployments.
+
+Step 29 — GitOps Basics
+Learn concept:
+Infrastructure controlled through Git.
+Outcome:
+Declarative operations.
+
+Step 30 — Helm CI/CD Integration
+Automate Helm deployments.
+Outcome:
+Versioned application releases.
+
+Step 31 — Logging Architecture
+Understand logging approaches:
+container logs
+centralized logging
+Outcome:
+Production debugging.
+
+Step 32 — Metrics and Monitoring
+Understand metrics stack conceptually.
+Outcome:
+Observe application health.
+
+Step 33 — Security Basics
+Learn:
+RBAC
+service accounts
+Outcome:
+Secure cluster access.
+
+Step 34 — Image Security
+Learn:
+trusted registries
+vulnerability scanning
+Outcome:
+Secure containers.
+
+Step 35 — Cluster Upgrades (Conceptual)
+Understand:
+control plane upgrade
+node upgrades
+Outcome:
+Platform lifecycle management.
+
+Step 36 — Cost Optimization
+Learn:
+right resource sizing
+autoscaling
+Outcome:
+Efficient infrastructure.
+
+Step 37 — Production Readiness Checklist
+Validate:
+autoscaling
+monitoring
+logging
+resource limits
+backup strategy
+Outcome:
+Production-ready application deployment.
+
+Final Result After Completing All Phases
+You will be able to say confidently:
+“I have hands-on experience containerizing and deploying applications on Kubernetes, implementing scaling, configuration management, CI/CD integration, and troubleshooting production scenarios.”
+That is legitimate Kubernetes DevOps experience.
+
+Important Reality
+Even many engineers working in Kubernetes projects do not know half of these concepts deeply.
+If you complete this roadmap properly, your Kubernetes capability will be strong.
+
+If you want, next I can also give you something very important for your career:
+The 15 most common Kubernetes interview scenarios that companies ask for Senior DevOps engineers.
+These will help you translate this learning into interview success.
+

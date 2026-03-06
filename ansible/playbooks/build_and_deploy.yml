@@ -1,0 +1,39 @@
+---
+- name: Build Copiloton via Docker and Deploy to VM
+  hosts: localhost
+  tasks:
+    - name: Build the project using Maven Container
+      community.docker.docker_container:
+        name: maven_builder
+        image: maven:3.8.5-openjdk-17
+        volumes:
+          - "{{ playbook_dir }}:/usr/src/app"
+        working_dir: /usr/src/app
+        command: mvn clean package -DskipTests
+        state: started
+        detach: false
+        cleanup: yes
+
+- name: Transfer and Restart on VirtualBox
+  hosts: vbox_vms
+  become: yes
+  tasks:
+    - name: Ensure Java 17 is installed on VM
+      ansible.builtin.apt:
+        name: openjdk-17-jdk
+        state: present
+
+    - name: Copy the generated JAR to VM
+      ansible.builtin.copy:
+        # This looks into the 'target' folder Docker just created
+        src: "./target/copiloton-0.0.1-SNAPSHOT.jar" 
+        dest: "/opt/copiloton/app.jar"
+        mode: '0755'
+      notify: Restart Service
+
+  handlers:
+    - name: Restart Service
+      ansible.builtin.systemd:
+        name: copiloton
+        state: restarted
+        daemon_reload: yes

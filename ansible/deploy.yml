@@ -1,0 +1,5 @@
+---
+- name: Professional Deployment
+  hosts: web
+  roles:
+    - web

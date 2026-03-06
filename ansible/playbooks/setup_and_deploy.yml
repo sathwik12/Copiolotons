@@ -1,0 +1,51 @@
+---
+- name: Full Copiloton Deployment
+  hosts: vbox_vms
+  become: yes
+  vars:
+    local_jar_path: "./Copiolotons/project.jar" # Path on your local Windows/Mac
+    remote_jar_path: "/opt/copiloton/app.jar"
+
+  tasks:
+    - name: Install OpenJDK 17
+      ansible.builtin.apt:
+        name: openjdk-17-jdk
+        state: present
+        update_cache: yes
+
+    - name: Ensure directory exists
+      ansible.builtin.file:
+        path: /opt/copiloton
+        state: directory
+        owner: ansibleadmin
+        mode: '0755'
+
+    - name: Copy JAR file to VM
+      ansible.builtin.copy:
+        src: "{{ local_jar_path }}"
+        dest: "{{ remote_jar_path }}"
+      notify: Restart Copiloton
+
+    - name: Setup Systemd Service
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/copiloton.service
+        content: |
+          [Unit]
+          Description=Copiloton Service
+          After=network.target
+
+          [Service]
+          User=ansibleadmin
+          ExecStart=/usr/bin/java -jar {{ remote_jar_path }}
+          Restart=always
+
+          [Install]
+          WantedBy=multi-user.target
+
+  handlers:
+    - name: Restart Copiloton
+      ansible.builtin.systemd:
+        name: copiloton
+        state: restarted
+        enabled: yes
+        daemon_reload: yes

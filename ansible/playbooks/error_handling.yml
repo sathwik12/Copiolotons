@@ -1,0 +1,18 @@
+---
+- name: Pillar 17 Test
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Task One
+      debug:
+        msg: "Testing ignore_errors"
+      ignore_errors: yes
+
+    - name: Task Two
+      shell: "echo 'Success'"
+      register: result
+      failed_when: "'Failure' in result.stdout"
+
+    - name: Task Three
+      command: uptime
+      changed_when: false

@@ -1,0 +1,4 @@
+---
+- name: Log Deployment
+  debug:
+    msg: "The web role has updated the index file on {{ inventory_hostname }}"

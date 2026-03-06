@@ -1,0 +1,20 @@
+# Ignore the environment secrets! 
+.env
+node_modules/
+# Ignore build artifacts (Crucial for speed)
+target/
+*.jar
+*.war
+logs/
+# Ignore Version Control
+.git
+.gitignore
+
+# Ignore IDE files
+.idea/
+.vscode/
+*.iml
+
+# Ignore OS junk
+.DS_Store
+Thumbs.db
