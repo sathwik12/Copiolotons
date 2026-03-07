@@ -1,0 +1,660 @@
+Ons:
+
+
+STEP-1 Cluster Setup (Minikube)
+You practiced:
+minikube start
+kubectl get nodes
+kubectl cluster-info
+You also handled segmentation fault issue and binary repair.
+Missing Scenario (important)
+Real engineers also verify cluster health.
+Practice these:
+kubectl get componentstatuses
+kubectl get all -A
+kubectl get pods -n kube-system
+Why?
+Because in real projects sometimes scheduler or controller fails.
+
+
+These commands are essential for your DevOps laboratory because they allow you to look "under the hood" of Kubernetes to see if the engine itself is failing. Since you are managing a local environment on **Ubuntu via VirtualBox**, these checks are your first line of defense when the cluster behaves unexpectedly after a system restart.
+
+---
+
+### 1. `kubectl get componentstatuses` (or `cs`)
+
+This checks the health of the core "brain" of Kubernetes.
+
+* **What it monitors:** The **Scheduler** (decides which node gets a pod) and the **Controller-Manager** (handles replication and node health).
+* **Why it fails:** If your Ubuntu VM runs out of RAM or CPU, these processes might crash, meaning your "survey-app" pods will stay in `Pending` forever.
+* **Desired Outcome:** You want to see `Healthy` for all components.
+
+---
+
+### 2. `kubectl get all -A`
+
+The `-A` stands for **--all-namespaces**.
+
+* **What it does:** Shows every Pod, Service, Deployment, and ReplicaSet across the entire cluster.
+* **Why it’s useful:** Sometimes a problem isn't in your `default` namespace where "survey-app" lives, but in a hidden system namespace.
+* **Pro-Tip:** This is the fastest way to get a "bird's-eye view" of your cluster's total state.
+
+---
+
+### 3. `kubectl get pods -n kube-system`
+
+This looks specifically at the **System Namespace**.
+
+* **What you'll see:** Internal tools like **CoreDNS** (handles networking), **kube-proxy**, and **storage-provisioners**.
+* **Why it fails:** If **CoreDNS** is crashing here, your Spring Boot app won't be able to connect to its database, leading to the "Connection Refused" errors you've solved before.
+
+---
+
+### Summary: Troubleshooting the "System"
+
+| Command | Focus | Real-World Scenario |
+| --- | --- | --- |
+| **`get cs`** | Control Plane | Use this if new Pods won't start (Scheduler down). |
+| **`get all -A`** | Global Visibility | Use this to find "lost" resources or check overall health. |
+| **`get pods -n kube-system`** | Infrastructure | Use this if your app has network/DNS issues. |
+
+---
+
+### Practice Task:
+
+Run `kubectl get pods -n kube-system` and look for **CoreDNS**. If it is in a `CrashLoopBackOff` state, your internet restart might have messed up the cluster's internal DNS.
+
+**Would you like me to show you how to check the "System Logs" using `kubectl logs` for one of these system pods if they aren't showing as 'Running'?**
+
+
+
+STEP-2 kubectl basics
+You practiced:
+kubectl get nodes
+kubectl get pods
+kubectl apply
+Missing scenarios
+Learn these daily kubectl operations:
+kubectl delete pod
+kubectl edit deployment
+kubectl explain deployment
+kubectl get pods -o wide
+Why?
+DevOps engineers constantly modify resources live.
+Example interview question:
+How do you modify a running deployment?
+Answer:
+kubectl edit deployment myapp
+
+In your DevOps laboratory, moving from simple viewing to active modification is where you truly start "orchestrating" the environment. These daily operations are the building blocks for troubleshooting the **survey-app** and managing its lifecycle on your Ubuntu VMs.
+
+---
+
+### 1. `kubectl delete pod <pod-name>`
+
+* **What it does:** Forcefully terminates a specific Pod instance.
+* **Why use it:** If your Spring Boot app hangs or has a memory leak, deleting the Pod forces the **ReplicaSet** to immediately spin up a fresh, healthy one.
+* **Result:** It tests the "self-healing" nature of Kubernetes.
+
+### 2. `kubectl edit deployment <name>`
+
+* **What it does:** Opens the live configuration of your running Deployment in a text editor (usually `vim` or `nano`).
+* **Why use it:** This is the fastest way to change an environment variable or update an image version (like moving from `v5` to `v6`) without needing the original `.yaml` file handy.
+* **Interview Tip:** Always mention that while `edit` is great for quick fixes, using `kubectl apply -f` is preferred in professional projects for version control.
+
+### 3. `kubectl explain deployment`
+
+* **What it does:** Acts as a built-in manual for every field in a Kubernetes resource.
+* **Why use it:** If you forget where the `ports` or `env` section goes in your YAML, `kubectl explain deployment.spec.template.spec.containers` will show you the exact structure and requirements.
+
+### 4. `kubectl get pods -o wide`
+
+* **What it does:** Provides an expanded view of your Pods, including their **Internal IP** and the **Node** they are running on.
+* **Why use it:** In your VirtualBox lab, this helps you verify if a Pod is stuck because it's trying to run on a node that lost internet connectivity.
+
+---
+
+### Comparison of Modification Methods
+
+| Method | Best For... | Outcome |
+| --- | --- | --- |
+| **`kubectl apply -f`** | Official updates | Changes are tracked in your `Copiolotons` repo. |
+| **`kubectl edit`** | Live debugging | Instant changes to the running cluster. |
+| **`kubectl set image`** | Version swaps | Quickly triggers a **Rolling Update**. |
+
+---
+
+### Summary Checklist for Practice
+
+1. **Delete a Pod:** Run `kubectl delete pod [name]` and immediately run `kubectl get pods` to watch the new one take its place.
+2. **Edit Live:** Use `kubectl edit deployment survey-app-deployment` to change the number of `replicas` from 3 to 5.
+3. **Inspect Networking:** Use `-o wide` to confirm which internal IP was assigned to your new `survey-app` instance.
+
+**Since you're practicing live modifications, would you like me to show you how to use `kubectl label` to organize your Pods by "environment" (like `env=dev`) for better filtering?**
+
+//Creating a new deployment yaml without copying structure base////////////////
+To save the output of your `kubectl` command directly into a file in your current Ubuntu folder, you use the **redirection operator** (`>`). This is a standard Linux practice for capturing command output into a physical file.
+
+### The Command to Save Your YAML
+
+Run this in your terminal:
+
+```bash
+kubectl create deployment my-dummy-app --image=hansyy/survey-app:v6 --dry-run=client -o yaml > deployment.yaml
+
+```
+
+---
+
+### Breakdown of the command
+
+* **`--dry-run=client`**: Tells Kubernetes to "pretend" to run the command without actually creating anything in the cluster.
+* **`-o yaml`**: Formats that "pretend" output into the structured YAML template you need.
+* **`>`**: This is the "bridge" that sends the text away from your screen and into a file.
+* **`deployment.yaml`**: The name of the file you are creating. You can name this anything, like `survey-deployment.yaml`.
+
+---
+
+### How to Verify the File
+
+After running the command, you can confirm the file exists and view its contents using these common Linux commands:
+
+1. **List files**: `ls` (You should see `deployment.yaml` in the list).
+2. **View content**: `cat deployment.yaml`.
+3. **Edit content**: `nano deployment.yaml` (Use this if you need to add your `NodePort` or change the `replicas` count).
+
+---
+
+### Pro-Tip: Adding the Service
+
+Since you usually need a **Service** to access your app on port `30000`, you can do the same thing for your service YAML:
+
+```bash
+kubectl expose deployment my-dummy-app --type=NodePort --port=8080 --dry-run=client -o yaml > service.yaml
+
+```
+
+**Now that you have your YAML files saved locally, would you like me to show you how to move them into your `Copiolotons` folder so you can push them to GitHub?**
+
+Step-3 
+updated in real learning step-7
+STEP-4 Pod Deployment
+You deployed:
+pod.yaml
+And handled:
+ImagePullBackOff
+CrashLoopBackOff
+YAML syntax error
+This is excellent learning.
+Missing scenario
+Pod restart behavior.
+Practice:
+kubectl delete pod survey-app-pod
+Observe:
+Pod will NOT restart automatically.
+This teaches why pods should not be used directly in production.
+This scenario is often asked in interviews.
+
+This is a brilliant realization in your DevOps journey. Understanding the difference between a **naked Pod** and a **Deployment** is a common "lightbulb moment" that frequently appears in technical interviews.
+
+---
+
+### 1. The Experiment: Why the Pod won't restart
+
+When you run `kubectl delete pod survey-app-pod`, Kubernetes simply follows your instruction and removes the resource.
+
+* **The Result**: The Pod stays gone.
+* **The Reason**: A standalone Pod has no "Controller" (like a Deployment or ReplicaSet) watching over it. It is just a single instance of a container with no logic to ensure its own survival.
+
+---
+
+### 2. Deployment vs. Pod (The Interview Answer)
+
+If an interviewer asks: *"If I manually delete a Pod, will it come back?"*, your answer should be:
+
+> "It depends on how it was created. If it's a **standalone Pod**, it will not restart. If it is managed by a **Deployment**, the ReplicaSet will detect that the 'Actual State' (0 pods) does not match the 'Desired State' (e.g., 3 replicas) and will instantly spin up a new Pod to heal the cluster."
+
+---
+
+### 3. Handling Common Errors (Practice Review)
+
+You've already mastered the three biggest "roadblocks" in Pod deployment:
+
+* **ImagePullBackOff**: Usually caused by a typo in the image name (like `hansyy/servey-app` instead of `survey-app`) or missing Docker Hub credentials.
+* **CrashLoopBackOff**: The container starts but immediately exits. In your Spring Boot app, this often happens if the database connection fails or the port is already in use.
+* **YAML Syntax Error**: Common when indentation is wrong or a mandatory field like `apiVersion` is missing.
+
+---
+
+### 4. Summary Table: Pod Behavior
+
+| Scenario | Standalone Pod | Deployment / ReplicaSet |
+| --- | --- | --- |
+| **Manual Deletion** | Permanent deletion. | Automatically recreated. |
+| **Node Failure** | Pod is lost. | Pod is rescheduled to a healthy node. |
+| **Application Crash** | Restarts based on policy. | Restarts and maintains replica count. |
+| **Production Use** | **Never Recommended**. | **Standard Practice**. |
+
+---
+
+### Next Practice Step
+
+To see this in action, I recommend you try this sequence in your Ubuntu terminal:
+
+1. **Delete a Pod from your Deployment**: `kubectl delete pod [any-survey-app-pod-name]`.
+2. **Watch the healing**: Immediately run `kubectl get pods`.
+3. **Note the name**: You will see a brand new Pod name starting up within seconds.
+
+**Would you like me to show you how to check the `events` of a Pod to see exactly why it entered a `CrashLoopBackOff` during your previous troubleshooting sessions?**
+
+/////////////////////////
+Code ersion updated but error in loading page steps:
+
+Whitelabel Error Page
+This application has no explicit mapping for /error, so you are seeing this as a fallback.
+
+Sat Mar 07 16:53:38 GMT 2026
+There was an unexpected error (type=Not Found, status=404).
+
+A **404 Not Found** error in Spring Boot means your request reached the application, but the application doesn't have a specific "path" or "method" that matches what you typed in the URL.
+
+Since you are testing the new `/survey/search` endpoint you just added, here is how to troubleshoot this specific "Whitelabel Error Page."
+
+---
+
+## 1. Check the URL Structure
+
+In your `App.java`, the endpoint is defined with a specific path and a **Request Parameter**.
+
+* **Correct URL**: `http://[MINIKUBE_IP]:30000/survey/search?platform=Docker`
+* **Common Mistakes**:
+* Missing the `/survey` prefix: `http://.../search` (Will 404)
+* Missing the parameter: `http://.../survey/search` (Might 404 or 400 depending on your Spring version)
+* Typo in the path: `http://.../servay/search`
+
+
+
+---
+
+## 2. Verify the Image Version (The "v6" Check)
+
+Since you added this code recently, you must ensure the Pods currently running in your Ubuntu VM are actually using the updated code.
+
+1. **Check the Image**: Run `kubectl describe deployment survey-app-deployment`.
+2. **Look for**: The `Image:` line. If it still says `v4` or `v5`, your new code with the `/search` endpoint isn't live yet.
+3. **The Fix**:
+```bash
+kubectl set image deployment/survey-app-deployment survey-container=hansyy/survey-app:v6
+
+```
+
+
+
+---
+
+## 3. Check the Base Path
+
+In your `App.java`, the `@RestController` is at the class level, but you do **not** have a `@RequestMapping("/something")` at the top of the class.
+
+* **Result**: The paths are absolute from the root.
+* **Verification**: If `http://...:30000/` still shows your "Hello Kanna" message, then the app is running correctly, and the 404 is definitely just a typo in the sub-path `/survey/search`.
+
+---
+
+## 4. Debug with Logs
+
+Use the "Follow" command you just learned to see what happens when you hit the URL:
+
+```bash
+kubectl logs -f deployment/survey-app-deployment
+
+```
+
+* **If you see nothing**: The request isn't reaching your app (Check your Service/NodePort).
+* **If you see "No mapping for GET /survey/search"**: Your code update didn't build or deploy correctly.
+
+---
+
+### Troubleshooting Summary
+
+| What you see | Possible Cause | Fix |
+| --- | --- | --- |
+| **Whitelabel 404** | Typo in URL or Old Image | Check URL spelling and verify image is `v6`. |
+| **Connection Refused** | Minikube or Service is down | Run `minikube start` and check `kubectl get svc`. |
+| **No Route to Host** | Minikube IP changed | Run `minikube ip` to get the new address. |
+
+**Would you like me to help you check the `kubectl describe` output for your deployment to confirm which version of the image is currently running?**
+
+
+STEP-5 Debugging
+You practiced the 3 most important commands:
+kubectl logs
+kubectl exec
+kubectl describe
+And debugged:
+DB error
+missing driver
+env variables
+This is real production troubleshooting.
+Missing scenarios
+Two useful log options:
+kubectl logs -f
+kubectl logs --previous
+These help when containers restart repeatedly
+
+It is impressive how you have already tackled major production-style hurdles like **database connection errors**, **missing drivers**, and **environment variable** configurations in your local lab. Mastering these advanced log flags is the key to handling high-pressure scenarios where a service is flapping or crashing repeatedly.
+
+---
+
+### 1. `kubectl logs -f <pod-name>`
+
+The `-f` stands for **follow**.
+
+* **What it does:** It keeps the log stream open and prints new lines to your Ubuntu terminal in real-time as the application generates them.
+* **Why it's useful:** When you hit your new `/survey/search` endpoint in the browser, you can watch the Spring Boot console output simultaneously to see exactly when the SQL query is executed.
+
+---
+
+### 2. `kubectl logs --previous <pod-name>`
+
+This is essentially the "Black Box" flight recorder for Kubernetes.
+
+* **What it does:** It allows you to view the logs from the **last instance** of a container that crashed or was terminated.
+* **Why it's useful:** If your `survey-app` is stuck in a `CrashLoopBackOff`, the current container might be too "young" to have logs. The `--previous` flag lets you see the error (like an `OutOfMemoryError` or a missing dependency) that killed the *previous* container.
+* **Interview Context:** This is the standard answer for how to debug a pod that keeps restarting before you can manually run a log command.
+
+---
+
+### 3. Your Full Debugging Toolkit
+
+You have now rounded out the "Golden Triangle" of Kubernetes troubleshooting that you've been practicing:
+
+* **`kubectl logs`**: To see what the application (Spring Boot) is thinking.
+* **`kubectl describe`**: To see what the cluster (Kubernetes) is thinking (events like `ImagePullBackOff` or `Back-off restarting failed container`).
+* **`kubectl exec`**: To step inside the container and verify internal state, like checking if the database file exists or if network ports are open.
+
+---
+
+### Summary Checklist for Practice
+
+| Command Flag | When to use it? | Real-World Scenario |
+| --- | --- | --- |
+| **`-f` (Follow)** | During active testing. | Watching for errors as you click "Submit" on a survey. |
+| **`--previous`** | After a crash. | Finding out why the app died while you weren't looking. |
+| **`-l app=survey`** | Multi-pod clusters. | Seeing logs from all replicas of your survey-app at once. |
+
+**Since you're mastering logs, would you like me to show you how to use `kubectl top pods` to monitor if your Java application is hitting its memory limits on your Ubuntu VM?**
+
+
+STEP-6 Deployment (ReplicaSet)
+You did:
+replicas: 3
+kubectl scale deployment
+kubectl get pods
+And tested pod auto recreation.
+Excellent.
+Missing scenario
+Deployment self-healing.
+Practice:
+kubectl delete pod <pod-name>
+Observe:
+ReplicaSet creates new pod automatically.
+This demonstrates high availability.
+
+This experiment is the "aha!" moment for many DevOps engineers because it proves that Kubernetes isn't just a container runner, but a **self-healing system**. While you already noticed that "naked" Pods don't restart when deleted, your **Deployment** acts like a manager that never sleeps.
+
+---
+
+### 1. The High Availability Experiment
+
+When you delete a Pod that belongs to your **survey-app-deployment**, the following sequence occurs:
+
+1. **Detection**: The **ReplicaSet** (which lives inside your Deployment) constantly compares the **Desired State** (replicas: 3) with the **Actual State** (now 2 Pods).
+2. **Correction**: Within milliseconds, the ReplicaSet sends a request to the API server to create a brand new Pod.
+3. **Restoration**: A new Pod is scheduled and started, bringing the "Actual State" back to 3.
+
+---
+
+### 2. Practice Challenge: "The Race"
+
+To see this in your Ubuntu terminal:
+
+1. **Open two terminal windows.**
+2. In Terminal A, run: `kubectl get pods -w` (The `-w` means **watch**—it will update live).
+3. In Terminal B, delete a Pod: `kubectl delete pod <your-survey-pod-name>`.
+4. **Observe**: In Terminal A, you will see one Pod status change to `Terminating` and a brand new Pod name immediately appear with the status `Pending` then `Running`.
+
+---
+
+### 3. Key Interview Takeaways
+
+If asked about **High Availability (HA)**, you can now use your "survey-app" as a real-world example:
+
+* **Self-Healing**: Kubernetes detects and replaces failed or deleted Pods.
+* **Scaling**: You can go from 3 to 10 replicas instantly with `kubectl scale` to handle more survey traffic.
+* **Reliability**: Even if your Ubuntu VM has a minor glitch that kills a process, the Deployment ensures the app stays up.
+
+---
+
+### Summary of Component Roles
+
+| Component | Responsibility | Behavior on Deletion |
+| --- | --- | --- |
+| **Standalone Pod** | Runs the container. | Stays deleted forever. |
+| **ReplicaSet** | Maintains the "count." | Triggers an immediate replacement. |
+| **Deployment** | Manages versions (Rollouts). | Handles the ReplicaSets for you. |
+
+**Would you like me to show you how to use a `LivenessProbe` in your YAML so that Kubernetes can detect if your Spring Boot app is "frozen" and restart it automatically even without you deleting it?**
+
+
+STEP-7 Rolling Updates
+You covered:
+kubectl rollout status
+kubectl rollout history
+kubectl rollout undo
+Very good — many learners skip this.
+Missing scenario
+Deployment failure rollback.
+Practice:
+Update deployment with bad image.
+Example:
+image: hansyy/survey-app:wrongtag
+Then observe:
+kubectl rollout status deployment/survey-app-deployment
+Then rollback:
+kubectl rollout undo deployment/survey-app-deployment
+This is very common in real production incidents.
+
+If your application is still running despite a failed deployment (like using a non-existent `v7` tag), it is actually a sign that Kubernetes is working exactly as intended. This behavior is the core of **Zero Downtime Deployments**.
+
+---
+
+## 1. Why it is still running
+
+When you trigger an update (Rolling Update), Kubernetes follows a safety-first logic:
+
+* **The "Wait and See" Strategy**: It starts a new Pod with the `v7` image but does **not** kill your old Pods (likely `v6`) until the new one is marked as "Ready".
+* **The Blockage**: Since `v7` doesn't exist or has an error, the new Pod gets stuck in `ImagePullBackOff`.
+* **Survival**: Because the new Pod never becomes healthy, Kubernetes stops the rollout and keeps your old, working Pods alive. Your users (and your browser test) still see the old version because that is the only stable version available.
+
+---
+
+## 2. How to Confirm the "Stall"
+
+Run these commands in your Ubuntu terminal to see the "stuck" state:
+
+* **Check Pod Status**:
+```bash
+kubectl get pods
+
+```
+
+
+*You will likely see some pods as `Running` (the old ones) and one pod stuck in `ImagePullBackOff` (the failed `v7`).*
+* **Check the Rollout Progress**:
+```bash
+kubectl rollout status deployment/survey-app-deployment
+
+```
+
+
+*It will likely say: "Waiting for deployment 'survey-app-deployment' rollout to finish...".*
+
+---
+
+## 3. How to Fix it
+
+Since `v7` failed, you have two choices to get back to a clean state:
+
+**Option A: Rollback (Return to the stable v6)**
+If you want to clear the error and stop Kubernetes from trying to pull `v7`:
+
+```bash
+kubectl rollout undo deployment/survey-app-deployment
+
+```
+
+**Option B: Fix and Push (Make v7 real)**
+If you intended to deploy `v7`, you likely forgot to build or push it to Docker Hub:
+
+1. **Build**: `docker build -t hansyy/survey-app:v7 .`
+2. **Push**: `docker push hansyy/survey-app:v7`
+3. **Wait**: Kubernetes will eventually see the image is available and complete the rollout automatically.
+
+---
+
+### Summary Checklist
+
+| Current State | What the Cluster is doing | Action Needed |
+| --- | --- | --- |
+| **Old App is Live** | Protecting your users from the "bad" update. | None (for the users). |
+| **`ImagePullBackOff`** | Trying repeatedly to find the `v7` image. | Fix image name or tag. |
+| **Stuck Rollout** | Paused at the first failure. | Run `kubectl rollout undo`. |
+
+**Would you like me to show you how to use `kubectl describe pod <stuck-pod-name>` to see the exact error message from Docker Hub regarding the missing `v7` tag?**
+
+
+
+STEP-8 Services
+You learned:
+ClusterIP
+NodePort
+And exposed the application.
+You also learned selector mismatch problem — very important.
+Missing scenarios
+Two service debugging checks:
+kubectl get endpoints
+kubectl describe svc
+Why?
+Because sometimes service exists but no pods connected.
+
+In your DevOps laboratory, moving from basic exposure to deep service debugging is where you start handling complex networking issues. You have already navigated the **selector mismatch** hurdle, which is the most common reason for a service to fail quietly.
+
+---
+
+### 1. `kubectl get endpoints` (or `ep`)
+
+This is the "connectivity bridge" between your service and your pods.
+
+* **What it does:** It shows a list of internal IP addresses that the Service is currently sending traffic to.
+* **The "Empty" Problem:** If you see `<none>` or an empty list under the `ENDPOINTS` column, it means your Service is "lonely"—it exists, but it hasn't found any Pods to talk to.
+* **The Fix:** This almost always points back to a **Selector Mismatch**. The `app: survey` label in your Service must perfectly match the `app: survey` label in your Pod template.
+
+---
+
+### 2. `kubectl describe svc <service-name>`
+
+This provides a detailed "status report" of your networking configuration.
+
+* **What to look for:**
+* **Selector:** Ensure this matches your Deployment labels.
+* **TargetPort:** Ensure this matches the port your Spring Boot app is actually listening on (e.g., `8080`).
+* **NodePort:** Confirm it is still assigned to `30000` so you can reach it via your browser.
+* **Endpoints:** This section will list the Pod IPs; if it's blank here, traffic will never reach your app.
+
+
+
+---
+
+### 3. Comparison of Service Types
+
+In your recent practice sessions, you've used these two types within your Minikube environment:
+
+| Service Type | Scope | Real-World Use Case |
+| --- | --- | --- |
+| **ClusterIP** | Internal only. | Database access (like your H2 or MySQL). |
+| **NodePort** | External via Node IP. | Accessing your "survey-app" UI from a browser. |
+| **LoadBalancer** | External via Cloud IP. | Production traffic in AWS/Azure (Future Step). |
+
+---
+
+### Summary Checklist for Debugging
+
+If your `/survey/search` test fails with a timeout:
+
+1. **Check Endpoints:** `kubectl get ep survey-app-service`. If empty, fix labels.
+2. **Describe Service:** `kubectl describe svc survey-app-service`. Verify ports.
+3. **Check Pod Readiness:** If a pod isn't "Ready," it won't be added to the endpoints list.
+
+**Since you are mastering service discovery, would you like me to show you how to use `kubectl port-forward` to temporarily access your app without needing a NodePort at all?**
+
+
+Data loads in api via kubectl exec --it - pod but not in UI:
+
+If you can reach the endpoint inside the terminal (using `exec` or `wget`) but your browser (the UI) shows an error or empty results, the issue lies in the **Kubernetes Networking Layers** between your Ubuntu host and the Pod.
+
+Here is why the communication is breaking down at the "doorway" of your cluster:
+
+### 1. The "Selector" Mismatch (Most Common)
+
+Even if your Pod is running perfectly, the **Service** might not be sending traffic to it.
+
+* **The Problem**: If the `selector` in your `service.yaml` does not perfectly match the `labels` in your `deployment.yaml`, the Service has no destination.
+* **The Check**: Run `kubectl get endpoints survey-app-service`.
+* **The Fix**: If the `ENDPOINTS` column is `<none>`, update your Service YAML so the `selector` matches the Pod labels exactly.
+
+---
+
+### 2. TargetPort vs. ContainerPort
+
+Your Service acts as a "traffic controller" that needs to know which internal port to hit.
+
+* **The Check**: Run `kubectl describe svc survey-app-service`.
+* **Verify these two values**:
+* **Port**: This is the port *within* the cluster (usually `8080`).
+* **TargetPort**: This **must** match the port your Spring Boot app is listening on (default `8080`).
+
+
+* **The Failure**: If your app is on `8080` but your Service `targetPort` is `80`, the browser request will fail.
+
+---
+
+### 3. Minikube IP or NodePort Change
+
+Since you are working in a VirtualBox laboratory, your networking environment can shift.
+
+* **The IP Check**: Run `minikube ip`. Ensure the IP in your browser (e.g., `192.168.49.2`) matches the current output.
+* **The NodePort Check**: Ensure you are using the correct port assigned in your Service (e.g., `30000`). If you didn't specify `nodePort: 30000`, Kubernetes will assign a random one between `30000-32767`.
+
+---
+
+### 4. Database Reset (Why it's empty)
+
+If the UI loads but shows `[]` (empty brackets) while your terminal shows data, you might be hitting **different Pods** or a **reset database**.
+
+* **Ephemeral Memory**: Since you are using an in-memory H2 database, every time a Pod restarts (like during your `v7` update attempts), all data is wiped.
+* **The Result**: You must `POST` data again every time the Pod name changes.
+
+---
+
+### Debugging Steps Summary
+
+| Test Location | Result | What to check next |
+| --- | --- | --- |
+| **Inside Pod (`exec`)** | **Success** | The Application code is healthy. |
+| **`kubectl get ep`** | **Empty** | Fix the **Selector** in your Service YAML. |
+| **`minikube ip`** | **Changed** | Update the URL in your browser. |
+| **Browser UI** | **404/Timeout** | Check **TargetPort** and **NodePort**. |
+
+**Would you like me to show you how to check the `Service` and `Deployment` YAMLs side-by-side to find the label mismatch?**
+

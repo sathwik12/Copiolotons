@@ -453,7 +453,7 @@ docker push hansyy/survey-app:v3
 
 | Action | Command | Purpose |
 | --- | --- | --- |
-| **Login** | `echo "YOUR_TOKEN" | docker login -u hansyy --password-stdin` |
+| **Login** | `echo "" | docker login -u hansyy --password-stdin` |
 | **Build** | `docker build -t survey-app .` | Create the image from code. |
 | **Tag** | `docker tag survey-app hansyy/survey-app:v3` | Prepare for Docker Hub naming. |
 | **Push** | `docker push hansyy/survey-app:v3` | Upload to the cloud. |
@@ -1048,6 +1048,86 @@ Before you roll back to `v3`, remember our earlier troubleshooting: **Does your 
 **Would you like me to show you how to check the image labels of v3 to see exactly when it was built before you pull the trigger on the rollback?**
 
 
+
+//////Ons Actual rollback and versions tried today for v6 code update////////////////////
+Rolling updates are a fundamental part of Kubernetes orchestration, allowing you to update your "survey-app" without any downtime. By gradually replacing old Pods with new ones, Kubernetes ensures that your application remains available to users even during a version change.
+
+---
+
+## 1. The Concept: Zero-Downtime Upgrades
+
+A **Rolling Update** is the default deployment strategy in Kubernetes. Instead of taking the whole application down to install a new version, it follows a "one-out, one-in" approach.
+
+* **MaxSurge**: This setting determines how many extra Pods can be created above your desired replica count during the update.
+* **MaxUnavailable**: This determines the maximum number of Pods that can be offline at any given time.
+* **Outcome**: If you have 3 replicas, Kubernetes might start 1 new Pod (v5), wait for it to be "Ready," and then terminate 1 old Pod (v4).
+
+---
+
+## 2. Detailed Steps to Execute an Update
+
+### Step A: Prepare the New Image
+
+Before Kubernetes can update, you must provide a new version of your image on Docker Hub.
+
+1. **Build**: `docker build -t hansyy/survey-app:v5 .`
+2. **Push**: `docker push hansyy/survey-app:v5`
+
+### Step B: Trigger the Update
+
+You can trigger the update by changing the image tag in your `deployment.yaml` file.
+
+```yaml
+spec:
+  template:
+    spec:
+      containers:
+      - name: survey-container
+        image: hansyy/survey-app:v5   # Change v4 to v5 here
+
+```
+
+Apply the change: `kubectl apply -f deployment.yaml`.
+
+---
+
+## 3. Mastering the Rollout Commands
+
+### Monitoring: `kubectl rollout status`
+
+This command provides a real-time view of the update progress.
+
+* **Usage**: `kubectl rollout status deployment/survey-app-deployment`.
+* **What it tells you**: It will explicitly state if "waiting for 1 old replicas to be terminated" or if the rollout was "successfully rolled out".
+
+### Auditing: `kubectl rollout history`
+
+Kubernetes keeps a record of every successful `kubectl apply` you perform.
+
+* **Usage**: `kubectl rollout history deployment/survey-app-deployment`.
+* **Insight**: This shows a list of **Revisions**. Revision 1 might be your `v3` image, and Revision 2 might be `v4`.
+
+### Recovery: `kubectl rollout undo`
+
+If the new version (v5) starts crashing—perhaps due to a missing database driver or a typo—you can instantly revert.
+
+* **Undo to previous**: `kubectl rollout undo deployment/survey-app-deployment`.
+* **Undo to specific version**: `kubectl rollout undo deployment/survey-app-deployment --to-revision=1`.
+
+---
+
+## 4. Summary of Outcomes
+
+| Command | Goal | Practical Result |
+| --- | --- | --- |
+| **Apply** | Start Upgrade | Triggers the creation of new v5 Pods. |
+| **Status** | Verification | Confirms all 3 replicas are now running the new version. |
+| **History** | Traceability | Provides a "timeline" of your deployment changes. |
+| **Undo** | Safety | Acts as a "Time Machine" to restore a working state. |
+
+**Since you've mastered manual rollbacks, would you like me to show you how to set up "Liveness Probes" so Kubernetes can automatically detect a failure and stop a bad rollout before it affects all your users?**
+
+
 Step 8 — Services
 Expose deployment.
 Types:
@@ -1233,6 +1313,158 @@ kubectl port-forward deployment/survey-app-deployment 8080:8080
 Then go to `http://localhost:8080`.
 
 **Can you run `kubectl get endpoints survey-external-service` and tell me if you see an IP address listed there or if it says `<none>`?**
+
+///////////Ons March 7th Learning//////////////////////
+
+My laptop got restarted  and couldnt load app at 30000 port loading it:
+Below steps were followed to retreive them and keep app running:
+
+When your Ubuntu system restarts, the Kubernetes cluster (Minikube) and your specific application configurations do not always start automatically. Since you are using a local DevOps laboratory with Ubuntu virtual machines in VirtualBox, several layers could be "down".
+
+Here is the step-by-step checklist to get your `30000` port back online:
+
+---
+
+## 1. Restart the Cluster
+
+Minikube is likely stopped. You must restart the virtual environment before Kubernetes can manage your pods.
+
+* **Command:** `minikube start`
+* **Why:** This re-initializes the control plane and the container runtime.
+
+---
+
+## 2. Verify Pod & Service Status
+
+Even if Minikube is up, your Deployment might be scaling or stuck.
+
+* **Check Pods:** `kubectl get pods`
+* If they say `Pending` or `ContainerCreating`, wait a minute.
+
+
+* **Check Service:** `kubectl get svc survey-external-service`
+* Ensure the `PORT(S)` column still shows `8080:30000/TCP`.
+
+
+
+---
+
+## 3. The "Minikube IP" Change (Most Likely)
+
+When Ubuntu restarts, the internal network bridge often assigns a **new IP address** to the Minikube node. Your previous IP (`192.168.49.2`) might have changed.
+
+* **Find the new IP:** `minikube ip`
+* **The Fix:** Try reaching the app using the **new** IP followed by `:30000`.
+* **Pro-Tip:** Use `minikube service survey-external-service --url` to get the exact clickable link.
+
+---
+
+## 4. Check the Database (H2)
+
+Since you are using an in-memory H2 database, all data was wiped during the restart. If your app requires specific data to load the `index.html` or start up, it might be failing silently.
+
+* **Check Logs:** `kubectl logs deployment/survey-app-deployment`
+* **Look for:** Any `Connection Refused` or `Driver` errors similar to your previous troubleshooting sessions.
+
+---
+
+## 5. Persistence Warning
+
+Because your "survey-app" is currently using an in-memory database configuration, any surveys you created before the crash are gone.
+
+---
+
+### Summary Checklist
+
+| Component | Status Check | Fix Command |
+| --- | --- | --- |
+| **Virtual Machine** | Is Ubuntu running? | Start VirtualBox VM |
+| **Minikube** | Is the cluster up? | `minikube start` |
+| **Networking** | Did the IP change? | `minikube ip` |
+| **Application** | Are Pods running? | `kubectl get pods` |
+
+**Would you like me to help you create a "Startup Script" so that your Minikube cluster and your survey-app deployment start automatically whenever your Ubuntu VM boots up?**
+
+//////////////Ons////////////////
+///////////// If new version of image deployed but endpoint not working /////////////////
+
+Debug steps:
+A **404 Not Found** error in Spring Boot means your request reached the application, but the application doesn't have a specific "path" or "method" that matches what you typed in the URL.
+
+Since you are testing the new `/survey/search` endpoint you just added, here is how to troubleshoot this specific "Whitelabel Error Page."
+
+---
+
+## 1. Check the URL Structure
+
+In your `App.java`, the endpoint is defined with a specific path and a **Request Parameter**.
+
+* **Correct URL**: `http://[MINIKUBE_IP]:30000/survey/search?platform=Docker`
+* **Common Mistakes**:
+* Missing the `/survey` prefix: `http://.../search` (Will 404)
+* Missing the parameter: `http://.../survey/search` (Might 404 or 400 depending on your Spring version)
+* Typo in the path: `http://.../servay/search`
+
+
+
+---
+
+## 2. Verify the Image Version (The "v6" Check)
+
+Since you added this code recently, you must ensure the Pods currently running in your Ubuntu VM are actually using the updated code.
+
+1. **Check the Image**: Run `kubectl describe deployment survey-app-deployment`.
+2. **Look for**: The `Image:` line. If it still says `v4` or `v5`, your new code with the `/search` endpoint isn't live yet.
+3. **The Fix**:
+```bash
+kubectl set image deployment/survey-app-deployment survey-container=hansyy/survey-app:v6
+
+```
+
+
+
+---
+
+## 3. Check the Base Path
+
+In your `App.java`, the `@RestController` is at the class level, but you do **not** have a `@RequestMapping("/something")` at the top of the class.
+
+* **Result**: The paths are absolute from the root.
+* **Verification**: If `http://...:30000/` still shows your "Hello Kanna" message, then the app is running correctly, and the 404 is definitely just a typo in the sub-path `/survey/search`.
+
+---
+
+## 4. Debug with Logs
+
+Use the "Follow" command you just learned to see what happens when you hit the URL:
+
+```bash
+kubectl logs -f deployment/survey-app-deployment
+
+```
+
+* **If you see nothing**: The request isn't reaching your app (Check your Service/NodePort).
+* **If you see "No mapping for GET /survey/search"**: Your code update didn't build or deploy correctly.
+
+---
+
+### Troubleshooting Summary
+
+| What you see | Possible Cause | Fix |
+| --- | --- | --- |
+| **Whitelabel 404** | Typo in URL or Old Image | Check URL spelling and verify image is `v6`. |
+| **Connection Refused** | Minikube or Service is down | Run `minikube start` and check `kubectl get svc`. |
+| **No Route to Host** | Minikube IP changed | Run `minikube ip` to get the new address. |
+
+**Would you like me to help you check the `kubectl describe` output for your deployment to confirm which version of the image is currently running?**
+
+
+
+
+
+
+
+
 
 
 

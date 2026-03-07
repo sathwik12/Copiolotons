@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: survey-container
-        image: hansyy/survey-app:v4
+        image: hansyy/survey-app:v6
         ports:
         - containerPort: 8080
         env:                # Re-using your working H2 config

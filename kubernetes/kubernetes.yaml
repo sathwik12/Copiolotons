@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: my-dummy-app
+  name: my-dummy-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: my-dummy-app
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: my-dummy-app
+    spec:
+      containers:
+      - image: hansyy/survey-app
+        name: survey-app
+        resources: {}
+status: {}
