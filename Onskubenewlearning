@@ -570,7 +570,6 @@ This provides a detailed "status report" of your networking configuration.
 * **Selector:** Ensure this matches your Deployment labels.
 * **TargetPort:** Ensure this matches the port your Spring Boot app is actually listening on (e.g., `8080`).
 * **NodePort:** Confirm it is still assigned to `30000` so you can reach it via your browser.
-* **Endpoints:** This section will list the Pod IPs; if it's blank here, traffic will never reach your app.
 
 
 
@@ -657,4 +656,57 @@ If the UI loads but shows `[]` (empty brackets) while your terminal shows data, 
 | **Browser UI** | **404/Timeout** | Check **TargetPort** and **NodePort**. |
 
 **Would you like me to show you how to check the `Service` and `Deployment` YAMLs side-by-side to find the label mismatch?**
+/////////////////////////
+
+now again i can see data for new endpoint why it is weird and what am i missing tell me? sometimes i see data new endpoint some time white label error 404
+
+It feels "weird" because you are witnessing the **Load Balancing** and **Lifecycle** behavior of Kubernetes in real-time. The reason you see data sometimes and a 404 other times is likely due to an **Inconsistent Cluster State** where your 3 replicas are not actually running the same code.
+
+Here is exactly what is happening behind the scenes in your Ubuntu DevOps lab:
+
+### 1. The "Split Brain" Deployment
+
+When you updated to `v7` and it failed (ImagePullBackOff), Kubernetes stopped the rollout. This often leaves your cluster in a mixed state:
+
+* **Pod A (Old Version)**: Still running `v6` which has the `/survey/search` endpoint.
+* **Pod B (Failed Version)**: Stuck trying to pull `v7`.
+* **Pod C (Older Version)**: Might still be running `v5` (which doesn't have the new endpoint) if the rollout was interrupted mid-way.
+
+**Why it’s intermittent:** When you refresh your browser, the **Service** picks a Pod at random. If it hits Pod A, you see data; if it hits Pod C, you get a 404.
+
+### 2. The "Ephemeral" Database (H2)
+
+Since you are using an in-memory database for your Spring Boot app, the data only exists as long as that specific Pod is alive.
+
+* If you `POST` data to **Pod A**, that data stays in **Pod A's** memory.
+* When you refresh the UI and the Service sends you to **Pod B**, that Pod has a completely empty database, resulting in `[]` or a 404 if the code version is different.
+
+### 3. How to Synchronize Your Cluster
+
+To stop the "weird" behavior, you need to ensure every Pod is running the exact same stable code.
+
+**Run these commands to clean up:**
+
+1. **Undo the failed update**:
+`kubectl rollout undo deployment/survey-app-deployment`
+*This forces all 3 replicas back to the last known stable version (e.g., `v6`).*
+2. **Verify consistency**:
+`kubectl get pods`
+*Wait until all Pods show `Running` and none show `ImagePullBackOff`.*
+3. **Check the logs for all Pods**:
+`kubectl logs -l app=survey`
+*This lets you see if all replicas are responding to your requests.*
+
+---
+
+### Summary of What You're Missing
+
+| Behavior | The Cause | The DevOps Solution |
+| --- | --- | --- |
+| **Intermittent 404** | Some Pods have the new code, others don't. | `kubectl rollout undo` to sync versions. |
+| **Data Disappears** | Data is stored in Pod RAM, not a persistent DB. | Use a Persistent Volume or a separate Database Pod. |
+| **"Weird" UI** | Service is load balancing across different versions. | Check `kubectl rollout status` before testing. |
+
+**Would you like me to show you how to set your `replicas` to 1 temporarily so you can test your new endpoint without the Service jumping between different Pods?**
+
 
