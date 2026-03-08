@@ -4,13 +4,13 @@ metadata:
   name: survey-app-deployment
 spec:
   replicas: 2              # This is pod replication: 3 copies running!
-  selector:
+  selector:                #Deployment scanner
     matchLabels:
       app: survey           # Tells Deployment which Pods to manage
-  template:                 # This is the "cookie cutter" for the Pods
+  template:                 # This is the "blueprint" for the Pods
     metadata:
       labels:
-        app: survey         # MUST match the selector above
+        app: survey         # MUST match the selector above and must atch matchlabels
     spec:
       containers:
       - name: survey-container
