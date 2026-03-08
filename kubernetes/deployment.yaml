@@ -3,22 +3,45 @@ kind: Deployment
 metadata:
   name: survey-app-deployment
 spec:
-  replicas: 2              # This is pod replication: 3 copies running!
-  selector:                #Deployment scanner
+  replicas: 2               # Maintain 2 pods for high availability
+  selector:                 
     matchLabels:
-      app: survey           # Tells Deployment which Pods to manage
-  template:                 # This is the "blueprint" for the Pods
+      app: survey           # Deployment watches pods with this label
+  template:                 
     metadata:
       labels:
-        app: survey         # MUST match the selector above and must atch matchlabels
+        app: survey         # MUST match the selector above
     spec:
       containers:
       - name: survey-container
         image: hansyy/survey-app:v6
         ports:
         - containerPort: 8080
-        env:                # Re-using your working H2 config
+        env:
+        # 1. Externalized Database URL from ConfigMap
         - name: SPRING_DATASOURCE_URL
-          value: "jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1"
+          valueFrom:
+            configMapKeyRef:
+              name: survey-app-config
+              key: DB_URL
+        
+        # 2. Externalized Driver Class from ConfigMap
         - name: SPRING_DATASOURCE_DRIVER_CLASS_NAME
-          value: "org.h2.Driver"
+          valueFrom:
+            configMapKeyRef:
+              name: survey-app-config
+              key: DB_DRIVER
+
+        # 3. Environment Identifier from ConfigMap
+        - name: APP_ENV_LABEL
+          valueFrom:
+            configMapKeyRef:
+              name: survey-app-config
+              key: APP_ENV
+
+        # 4. SECURE: Database Password from Secret
+        - name: SPRING_DATASOURCE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: survey-app-secret    # Points to your Step 12 Secret
+              key: DB_PASSWORD           # Key inside the Secret

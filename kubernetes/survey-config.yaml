@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: survey-app-config
+data:
+  DB_URL: "jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1"
+  DB_DRIVER: "org.h2.Driver"
+  APP_ENV: "DEV_ENVIRONMENT" # You can change this to "DEV" in your dev namespace!
