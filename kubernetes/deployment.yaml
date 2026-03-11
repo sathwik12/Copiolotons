@@ -17,6 +17,33 @@ spec:
         image: hansyy/survey-app:v6
         ports:
         - containerPort: 8080
+        
+        # --- RESOURCE LIMITS (Step 13) ---
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "400m"
+
+        # --- HEALTH PROBES (Step 14) ---
+        # Readiness: Checks if the app is ready for users
+        readinessProbe:
+          httpGet:
+            path: /          
+            port: 8080
+          initialDelaySeconds: 25  # Gives Spring Boot 25s to load
+          periodSeconds: 5
+        
+        # Liveness: Checks if the app is still alive or frozen
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 45  # Waits longer before deciding it's "dead"
+          periodSeconds: 10
+
         env:
         # 1. Externalized Database URL from ConfigMap
         - name: SPRING_DATASOURCE_URL
@@ -43,5 +70,5 @@ spec:
         - name: SPRING_DATASOURCE_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: survey-app-secret    # Points to your Step 12 Secret
-              key: DB_PASSWORD           # Key inside the Secret
+              name: survey-app-secret
+              key: DB_PASSWORD
