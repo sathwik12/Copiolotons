@@ -2,21 +2,30 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: survey-app-deployment
+  namespace: prod
 spec:
-  replicas: 2               # Maintain 2 pods for high availability
-  selector:                 
+  replicas: 2                # Maintain 2 pods for high availability
+  selector:                  
     matchLabels:
-      app: survey           # Deployment watches pods with this label
-  template:                 
+      app: survey            # Deployment watches pods with this label
+  template:                  
     metadata:
       labels:
-        app: survey         # MUST match the selector above
+        app: survey          # MUST match the selector above
     spec:
+      # ADD THIS SECTION: It tells K8s to make the volume writable by user 1000
+      securityContext:
+        fsGroup: 1000
       containers:
       - name: survey-container
         image: hansyy/survey-app:v6
         ports:
         - containerPort: 8080
+        # --- STORAGE ADDITION START ---
+        volumeMounts:
+        - name: survey-storage-volume
+          mountPath: /app/data # This matches where your app saves its DB/logs
+        # --- STORAGE ADDITION END ---
         
         # --- RESOURCE LIMITS (Step 13) ---
         resources:
@@ -26,7 +35,7 @@ spec:
           limits:
             memory: "512Mi"
             cpu: "400m"
-
+            
         # --- HEALTH PROBES (Step 14) ---
         # Readiness: Checks if the app is ready for users
         readinessProbe:
@@ -72,3 +81,9 @@ spec:
             secretKeyRef:
               name: survey-app-secret
               key: DB_PASSWORD
+      
+      # VOLUMES are defined here at the Pod Level
+      volumes:
+      - name: survey-storage-volume
+        persistentVolumeClaim:
+          claimName: survey-pvc # This must match the name in pvc.yaml
