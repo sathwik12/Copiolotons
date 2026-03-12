@@ -8,5 +8,4 @@ spec:
   accessModes:
     - ReadWriteOnce
   hostPath:
-    path: "/data/survey-storage" # Updated path for better visibility in Minikube
-  persistentVolumeReclaimPolicy: Retain # Ensures data stays even if PVC is deleted
+    path: "/data/survey-storage"

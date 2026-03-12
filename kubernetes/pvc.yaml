@@ -4,7 +4,6 @@ metadata:
   name: survey-pvc
   namespace: prod
 spec:
-  storageClassName: "" # ADD THIS LINE: It tells K8s NOT to use the default 'standard' class
   accessModes:
     - ReadWriteOnce
   resources:

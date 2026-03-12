@@ -4,7 +4,7 @@ metadata:
   name: survey-app-deployment
   namespace: prod
 spec:
-  replicas: 2                # Maintain 2 pods for high availability
+  replicas: 1                # Scale to 1 for initial persistent testing
   selector:                  
     matchLabels:
       app: survey            # Deployment watches pods with this label
@@ -21,11 +21,18 @@ spec:
         image: hansyy/survey-app:v6
         ports:
         - containerPort: 8080
-        # --- STORAGE ADDITION START ---
+        
+        # --- NEW: STORAGE VERIFICATION HOOK ---
+        # This proves the disk is working by writing a timestamp on every start
+        lifecycle:
+          postStart:
+            exec:
+              command: ["/bin/sh", "-c", "echo 'Pod started at $(date)' >> /app/data/pod_history.txt"]
+
+        # --- STORAGE MOUNT (Step 16) ---
         volumeMounts:
         - name: survey-storage-volume
           mountPath: /app/data # This matches where your app saves its DB/logs
-        # --- STORAGE ADDITION END ---
         
         # --- RESOURCE LIMITS (Step 13) ---
         resources:
@@ -37,21 +44,19 @@ spec:
             cpu: "400m"
             
         # --- HEALTH PROBES (Step 14) ---
-        # Readiness: Checks if the app is ready for users
         readinessProbe:
           httpGet:
             path: /          
             port: 8080
-          initialDelaySeconds: 25  # Gives Spring Boot 25s to load
-          periodSeconds: 5
+          initialDelaySeconds: 20  # Gives Spring Boot time to load
+          periodSeconds: 10
         
-        # Liveness: Checks if the app is still alive or frozen
         livenessProbe:
           httpGet:
             path: /
             port: 8080
-          initialDelaySeconds: 45  # Waits longer before deciding it's "dead"
-          periodSeconds: 10
+          initialDelaySeconds: 30  # Waits longer before deciding it's "dead"
+          periodSeconds: 15
 
         env:
         # 1. Externalized Database URL from ConfigMap
@@ -74,6 +79,14 @@ spec:
             configMapKeyRef:
               name: survey-app-config
               key: APP_ENV
+        
+        # --- HIBERNATE & DIALECT SETTINGS (Step 16 Troubleshooting) ---
+        - name: SPRING_JPA_DATABASE_PLATFORM
+          value: "org.hibernate.dialect.H2Dialect"
+        - name: SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT
+          value: "org.hibernate.dialect.H2Dialect"
+        - name: SPRING_JPA_HIBERNATE_DDL_AUTO
+          value: "update"
 
         # 4. SECURE: Database Password from Secret
         - name: SPRING_DATASOURCE_PASSWORD
@@ -82,7 +95,7 @@ spec:
               name: survey-app-secret
               key: DB_PASSWORD
       
-      # VOLUMES are defined here at the Pod Level
+      # --- VOLUMES DEFINITION (Step 16) ---
       volumes:
       - name: survey-storage-volume
         persistentVolumeClaim:

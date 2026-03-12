@@ -3,6 +3,6 @@ kind: ConfigMap
 metadata:
   name: survey-app-config  # Keep the name the same so the Deployment can find it
 data:
-  DB_URL: "jdbc:h2:mem:proddb;DB_CLOSE_DELAY=-1" # Notice a different DB name
+  DB_URL: "jdbc:h2:file:/app/data/proddb;DB_CLOSE_ON_EXIT=FALSE;AUTO_SERVER=TRUE" # Notice a different DB name
   DB_DRIVER: "org.h2.Driver"
   APP_ENV: "LIVE_PRODUCTION_SERVER" # This is our test value
