@@ -4130,5 +4130,914 @@ Run these commands to prove the "Outcome: Stateful applications supported" is tr
 3. **Check again in the new Pod:** Run the `cat` command again. You should see **two** entries, proving the data survived the pod's death.
 
 Would you like me to help you verify the logs once you've applied these three files?
+//////////////////
+
+pods working and writing data persistent but crashloop pods restarting because of echo command write:
+
+Fix:
+now that data backup persitent is working can i leave about pod restarts or will this hae peroblem?
+
+That is a classic "Senior DevOps" question. The short answer is: **No, you cannot leave the restarts alone.** While it's great that your data is safe (Persistence), constant restarts are a sign of an **unhealthy infrastructure**. In a real production environment, those restarts would trigger alerts, wake up engineers at 2:00 AM, and cause brief "502 Bad Gateway" errors for your users every time the pod dies.
+
+Here is why you need to fix the restarts before moving to Step 17:
+
+### 1. The "Database Lock" Danger
+
+Since you are using a file-based H2 database, every restart risk "corrupting" the lock. If a pod is killed while it's writing data, the `.lock.db` file might stay on the disk. When the new pod tries to start, it will see the lock, think someone else is using it, and crash again. This can lead to a **permanent crash loop** that persistence won't fix.
+
+### 2. User Experience (Downtime)
+
+Even if the restart only takes 30 seconds, during those 30 seconds, your survey app is "Down." If you have 10 restarts a day, that’s 5 minutes of downtime where no one can submit a survey.
+
+### 3. Resource Waste
+
+Every time Spring Boot starts up, it uses a massive spike of CPU and Memory to scan the classpath and initialize Hibernate. Constant restarts put unnecessary "stress" on your Minikube node.
+
+---
+
+### How to reach "Zero Restarts" Stability
+
+To finish Step 16 properly, update your Deployment one last time with these **Stability Settings**. This gives the app enough "breathing room" to start correctly without Kubernetes pulling the plug early.
+
+**Updated Deployment Snippet:**
+
+```yaml
+spec:
+  replicas: 1                # IMPORTANT: H2-File only allows ONE writer pod
+  strategy:
+    type: Recreate           # Ensures the old pod is fully gone before the new one starts
+...
+        # --- STABILITY PROBES ---
+        readinessProbe:
+          httpGet:
+            path: /          
+            port: 8080
+          initialDelaySeconds: 120 # Give it 2 full minutes to scan the disk
+          periodSeconds: 10
+        
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 150 # Let it fully stabilize before checking health
+          periodSeconds: 15
+
+```
+
+### The "Clean Slate" Final Step
+
+After you apply the 120s/150s probe settings, run this to reset the counter:
+
+```bash
+kubectl delete pods -l app=survey -n prod
+
+```
+
+Wait 3 minutes, then run `kubectl get pods -n prod`. **If you see `RESTARTS: 0`, you have truly mastered Step 16.**
+
+---
+
+### Summary of Achievement
+
+* **Persistent Volumes:** Data survives pod death. (Success!)
+* **Persistent Volume Claims:** App successfully requests storage. (Success!)
+* **Stateful Support:** Pods are stable and running without crashing. (Final Step!)
+
+**Would you like to run that final delete command and verify if we can reach 0 restarts? Once we hit zero, we can finally move to Step 17 - Ingress.**
+
+//////////////////////////////////////////////////////////////////////////////
+Ons:  13th March:
+
+////////////////Scenarios for Persistent volumes production way/////////////////////////////////////////////////
+
+Scenario 1 — Pod restart persistence
+Test if data survives pod restart.
+
+Steps:
+
+kubectl delete pod <podname> -n prod
+Kubernetes will recreate it.
+
+Then check:
+
+kubectl exec -it <pod> -n prod -- cat /data/date.txt
+Expected:
+
+Same date value still present
+✅ This proves storage independent of container lifecycle.
+
+
+Answer:
+To finish **Scenario 1**, we need to verify that your data survived the manual deletion of the pod. This is the moment where you prove that your application has transitioned from **Stateless** to **Stateful**.
+
+Follow these final check steps to confirm the outcome:
+
+---
+
+### Step 1: Wait for the New Pod
+
+After you run the delete command, Kubernetes will immediately start a new one. Wait until it is fully ready:
+
+```bash
+# Watch the status until it says 1/1 Running
+kubectl get pods -n prod -w
+
+```
+
+### Step 2: The Final Evidence
+
+Once the new pod is running, run these two checks to see the data survival:
+
+#### **A. Check the Pod History (The Lifecycle Hook)**
+
+This proves the file system persisted and the new pod appended a new entry to the existing file.
+
+```bash
+# Get the NEW pod name
+NEW_POD=$(kubectl get pods -l app=survey -n prod -o jsonpath='{.items[0].metadata.name}')
+
+# Look for MULTIPLE timestamps
+kubectl exec -it $NEW_POD -n prod -- cat /app/data/pod_history.txt
+
+```
+
+#### **B. Check the Database (The Survey Data)**
+
+This proves your survey records (if you added any via the UI) are still there in the H2 file.
+
+```bash
+# Look for the database file on the persistent disk
+kubectl exec -it $NEW_POD -n prod -- ls -lh /app/data/
+
+```
+
+> **What to look for:** You should see `proddb.mv.db`. If that file is there and has a size greater than 0, your survey data is safe.
+
+---
+
+### Outcome Analysis: Why this worked
+
+* **Before Deletion:** The first pod was writing to a folder in your Ubuntu host (`/data/survey-storage`) mapped to `/app/data`.
+* **During Deletion:** The pod died, but the **Persistent Volume (PV)** stayed "Bound" to the host folder.
+* **After Deletion:** The new pod requested the **Persistent Volume Claim (PVC)**. Kubernetes "plugged" it back into the same host folder. The app found its old database file and simply continued where the last pod left off.
+
+---
+
+### Summary for your Project Report:
+
+> "In Scenario 1, I verified data persistence by manually deleting the application pod. Because the storage was decoupled using a **Persistent Volume Claim**, the replacement pod successfully remounted the existing H2 database file. The logs confirmed that the data survived the restart, achieving a **Stateful** architecture."
+
+**Did you see multiple timestamps in your `pod_history.txt`? If yes, Scenario 1 is a SUCCESS! Shall we move to Scenario 2 — Storage full or Ingress setup?**
+
+Scenario 2 — Deployment scaling
+Scale to multiple pods.
+
+kubectl scale deployment onsapp --replicas=2 -n prod
+Observe behaviour.
+
+Because you used:
+
+ReadWriteOnce
+Possible outcomes:
+
+• One pod runs
+• Second pod stuck in Pending
+
+This teaches you PVC access modes.
+
+Answer:
+You’ve hit the nail on the head. That **355 restart count** is happening because you are trying to force three different pods to open the exact same file at the exact same time.
+
+Since you are using **ReadWriteOnce (RWO)**, Kubernetes allows multiple pods to *attach* to the volume as long as they are on the same node (which they are in Minikube). However, the **H2 Database engine** inside your app is not designed for this. It places a "lock" on the file. When Pod #1 starts, it grabs the lock. When Pod #2 and #3 try to start, they see the lock, fail to open the database, and crash. This is why you see the `CrashLoopBackOff`.
+
+### The Solution: "One App, One Lock"
+
+In a production environment, if you wanted 3 pods, you would use a network database like **PostgreSQL**. But for your current project and Step 16, the fix is to align your **Replica Count** with your **Database Capability**.
+
+---
+
+### Step 1: Clean the "Ghost" Locks
+
+Before we fix the YAML, we must clear the lock file that is likely stuck on your Minikube node from the previous crashes.
+
+```bash
+minikube ssh "sudo rm -rf /data/survey-storage/*.lock.db"
+
+```
+
+### Step 2: The Final Stable Deployment
+
+I have updated your YAML to **1 Replica**. I have also added the `strategy: type: Recreate`, which ensures that during updates, Kubernetes kills the old pod *before* starting the new one, so the database lock is always released.
+
+**deployment.yaml**
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: survey-app-deployment
+  namespace: prod
+spec:
+  replicas: 1                # FIX: Minimized to 1 to prevent H2 file-locking crashes
+  strategy:
+    type: Recreate           # Ensures the lock is released before a new pod starts
+  selector:                  
+    matchLabels:
+      app: survey            
+  template:                  
+    metadata:
+      labels:
+        app: survey          
+    spec:
+      securityContext:
+        fsGroup: 1000        # Permission fix for Spring Boot user
+      containers:
+      - name: survey-container
+        image: hansyy/survey-app:v6
+        ports:
+        - containerPort: 8080
+        
+        # --- STORAGE VERIFICATION HOOK ---
+        lifecycle:
+          postStart:
+            exec:
+              command: ["/bin/sh", "-c", "echo Pod started at $(date) >> /app/data/pod_history.txt"]
+
+        # --- STORAGE MOUNT (Step 16) ---
+        volumeMounts:
+        - name: survey-storage-volume
+          mountPath: /app/data 
+        
+        # --- RESOURCE LIMITS ---
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "400m"
+            
+        # --- HEALTH PROBES (Stability Tuning) ---
+        readinessProbe:
+          httpGet:
+            path: /          
+            port: 8080
+          initialDelaySeconds: 120 # Gives the app 2 mins to handle disk I/O
+          periodSeconds: 10
+        
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 150 # Prevents killing the pod during slow starts
+          periodSeconds: 15
+
+        env:
+        - name: SPRING_DATASOURCE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: survey-app-config
+              key: DB_URL
+        - name: SPRING_DATASOURCE_DRIVER_CLASS_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: survey-app-config
+              key: DB_DRIVER
+        - name: APP_ENV_LABEL
+          valueFrom:
+            configMapKeyRef:
+              name: survey-app-config
+              key: APP_ENV
+        
+        # --- HIBERNATE SETTINGS ---
+        - name: SPRING_JPA_DATABASE_PLATFORM
+          value: "org.hibernate.dialect.H2Dialect"
+        - name: SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT
+          value: "org.hibernate.dialect.H2Dialect"
+        - name: SPRING_JPA_HIBERNATE_DDL_AUTO
+          value: "update"
+
+        - name: SPRING_DATASOURCE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: survey-app-secret
+              key: DB_PASSWORD
+      
+      volumes:
+      - name: survey-storage-volume
+        persistentVolumeClaim:
+          claimName: survey-pvc 
+
+```
+
+---
+
+### Step 3: Reset and Verify
+
+1. **Apply the change:** `kubectl apply -f deployment.yaml`
+2. **Delete the stuck pods:** `kubectl delete pods -l app=survey -n prod`
+3. **Wait 2-3 minutes.** The pod will stay in `0/1 Running` for a while because of the `initialDelaySeconds`.
+4. **The Result:** You should see **`1/1 Running`** with **`Restarts: 0`**.
+
+### Summary of the "Senior" Insight
+
+You correctly identified that **ReadWriteOnce** works on one node, but the application logic (the database engine) is the actual bottleneck. In DevOps, we call this a **Single-Writer Constraint**. By matching your replicas to your database's capability, you create a stable, production-ready environment.
+
+**Is the pod now showing 0 restarts after applying the `replicas: 1` fix?** Once it's stable, we can finally move to **Step 17: Ingress**.
+
+Scenario 3 — PVC deletion behaviour
+Delete pod.
+
+kubectl delete deployment onsapp -n prod
+Check:
+
+kubectl get pvc -n prod
+kubectl get pv
+Expected:
+
+PVC still exists
+PV still exists
+
+Data remains.
+
+This is important production behaviour.
+
+Answer:
+Same as above verified and saw data of pod_history.txt and data also
+
+Scenario 4 — PVC size mismatch
+Create PVC requesting 2GB.
+
+But PV only 1GB.
+
+Result:
+
+PVC Pending
+This teaches binding rules.
+
+Answer:
+
+Already tested and gave error from pvc mismatch storage size
+
+Scenario 5 — Multiple namespaces using storage
+Try creating same PVC in dev namespace.
+
+Observe:
+
+PVC is namespace scoped.
+
+PV is cluster scoped.
+
+This is important production knowledge.
+
+3️⃣ Advanced scenarios (recommended for real DevOps)--------------------->Not practiced for now due to lack of resources
+If you want production level mastery, practice these too.
+
+StorageClass dynamic provisioning
+Instead of manually creating PV.
+
+PVC auto-creates PV.
+
+Used in real clusters like:
+
+• AWS EBS
+• Azure Disk
+• GCP Persistent Disk
+
+Stateful applications
+Run something like:
+
+• PostgreSQL
+• Redis
+• MongoDB
+
+With PVC.
+
+Node failure simulation
+Delete pod and reschedule.
+
+Observe storage behaviour.
+
+4️⃣ Real production storage architecture
+Production clusters never use hostPath.
+
+Instead they use cloud storage:
+
+Platform	Storage
+AWS	EBS
+Azure	Azure Disk
+GCP	Persistent Disk
+On-prem	NFS / Ceph
+hostPath is only for learning and testing.
+
+5️⃣ My verdict for your learning
+Considering:
+
+Your 12 years experience
+
+Your DevOps roadmap
+
+Your onsapp project
+
+Your current exercise is 70% complete.
+
+Do the 5 scenarios above and you will reach 90% production readiness.
+
+6️⃣ Final important concept (most DevOps engineers miss)
+Storage in Kubernetes has 3 layers:
+
+Application
+      ↓
+PVC (request)
+      ↓
+PV (actual storage)
+      ↓
+Node / Cloud storage
+You successfully tested all three layers 👍
+
+✅ Conclusion
+
+Your exercise is good but not complete yet.
+
+Do 5 more scenarios to become production-ready.
+
+If you want, I can also show you the ONE killer storage interview scenario that 90% of DevOps engineers fail when companies ask about Kubernetes PV/PVC in production.
+
+
+
+Step 17 — Ingress Controller
+Expose application via HTTP.
+Learn:
+ingress resource
+ingress controller
+Outcome:
+External traffic routing.
+
+Scenario 1 — Basic ingress (single application)
+
+
+Moving to **Step 17** is the "Grand Finale" of your infrastructure setup. Up until now, you have been using `kubectl port-forward` or `NodePort` to see your app—which is like using a back door. **Ingress** is the professional "Front Door."
+
+---
+
+## 1. The Core Concepts
+
+### **The Ingress Resource (The Rulebook)**
+
+* **What it is:** A simple YAML file where you write the routing rules.
+* **Role:** It tells Kubernetes, "If someone types `survey.com`, send them to the `survey-app-service` on port 8080."
+* **Analogy:** A **Signpost** in a building lobby that says "Survey Office -> Room 402."
+
+### **The Ingress Controller (The Security Guard)**
+
+* **What it is:** The actual software (usually NGINX) that sits at the edge of your cluster and watches for traffic.
+* **Role:** It reads your "Rulebook" (Ingress Resource) and physically moves the traffic to the right pod. **Without a Controller, the Resource does nothing.**
+* **Analogy:** The **Receptionist** who actually directs people to the right room based on the signpost.
+
+---
+
+## 2. Why do we use Ingress in Real Applications?
+
+In the real world (AWS, Google Cloud, Azure), companies don't give users IP addresses like `192.168.49.2:31234`. They use Ingress for:
+
+1. **Host-Based Routing:** You can host `app.com`, `api.com`, and `admin.com` all on the **same IP address**, and the Ingress Controller will sort them out.
+2. **SSL/TLS (HTTPS):** You put your security certificates on the Ingress. This makes your site "Green" and secure (`https://`) without having to configure SSL inside your Java code.
+3. **Path-Based Routing:** You can send `survey.com/results` to one app and `survey.com/form` to another.
+
+---
+
+## 3. How to use it in your project
+
+To make this work in Minikube, we follow a specific 3-step path:
+
+### **A. Enable the Controller**
+
+Since the "Guard" (Controller) isn't running by default, you have to turn him on.
+
+```bash
+minikube addons enable ingress
+
+```
+
+### **B. Create the Ingress Resource**
+
+You will create a `survey-ingress.yaml` that maps a fake domain (like `survey-app.com`) to your service.
+
+### **C. The "Hosts" File Trick**
+
+Since `survey-app.com` isn't a real website on the internet, you have to tell your Ubuntu laptop: "Hey, if I type this URL, look at my Minikube IP."
+
+---
+
+## 4. Outcome: External Traffic Routing
+
+The final outcome is that your app becomes "Production Ready."
+
+| Feature | Port-Forward / NodePort | Ingress (Step 17) |
+| --- | --- | --- |
+| **URL Type** | `localhost:8080` or `IP:30001` | `http://survey-app.com` |
+| **Security** | None | Supports HTTPS/SSL |
+| **Scalability** | Hard to manage | Easy to add more apps |
+| **Professionalism** | Low (Internal only) | High (Real world) |
+
+---
+
+### Master Deployment YAML (Status Check)
+
+I am keeping your **Step 16** settings exactly as they are (1 replica, stable probes) so that your app remains healthy while we add the "Front Door."
+
+**Are you ready to enable the Ingress addon in Minikube and see the YAML to create your first professional URL?**
+
+
+To align your Ingress with your **`survey-internal-service`**, you need to make two specific changes to your `survey-ingress.yaml`. These changes ensure the "Front Door" (Ingress) knows which "Department" (Service Name) to talk to and which "Extension" (Service Port) to use.
+
+### The Required Changes
+
+Based on your `service-clusterip.yaml` file, you need to update the `backend` section of your Ingress:
+
+1. **Service Name:** Change `survey-app-service` to **`survey-internal-service`**.
+2. **Service Port:** Change `number: 8080` to **`number: 80`**.
+
+**Wait, why port 80?** In your `service-clusterip.yaml`, the `port` is defined as **80**. This is the port the Service listens on *inside* the cluster. The `targetPort: 8080` is where the Service sends traffic *to* your Spring Boot app. The Ingress only needs to know the Service's listening port (80).
+
+---
+
+### Your Updated `survey-ingress.yaml`
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: survey-app-ingress
+  namespace: prod
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: survey-app.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: survey-internal-service # MATCHES: metadata.name in your ClusterIP YAML
+            port:
+              number: 80                # MATCHES: spec.ports[0].port in your ClusterIP YAML
+
+```
+
+---
+
+### Step-by-Step Instructions to Apply
+
+#### 1. Apply the Service
+
+If you haven't already, ensure your internal service is running:
+
+```bash
+kubectl apply -f service-clusterip.yaml
+
+```
+
+#### 2. Apply the Updated Ingress
+
+```bash
+kubectl apply -f survey-ingress.yaml
+
+```
+
+#### 3. Update the "Hosts" File Trick
+
+If your Minikube IP has changed, run `minikube ip` to check. Make sure your `/etc/hosts` file points to that IP for `survey-app.com`.
+
+#### 4. Verification
+
+Run this command to see if the Ingress is correctly pointing to your internal service:
+
+```bash
+kubectl describe ingress survey-app-ingress -n prod
+
+```
+
+Look for the **Backends** section. It should now show: `survey-internal-service:80 (<IP_OF_YOUR_POD>:8080)`.
+
+### Why this is better
+
+By using the **`survey-internal-service`** (which is `type: ClusterIP`), you have successfully "hidden" your application from the outside world. Traffic can *only* get to your app through the Ingress "Front Door." This is exactly how professional, secure cloud environments are built.
+
+**Does `kubectl get ingress -n prod` show that it is successfully pointing to the new backend?**
+
+Scenario 2 — Multiple applications on same port:
+
+Scenario 2 — Multiple applications on same port   for survey-app how to create 2nd app and check this 
+
+In a real-world DevOps environment, **Scenario 2** is where Ingress truly shines. It allows you to host multiple different applications (like a `survey-app` and a `test-app`) on the exact same IP and port (**port 80**), using different "Paths" or "Hostnames" to tell them apart.
+
+To check this, we will create a lightweight "Dummy" app to act as your second application.
+
+---
+
+### Step 1: Create the 2nd Application (The "Test-App")
+
+We will use a simple NGINX image to represent your second app. You can run this directly in your terminal to save time:
+
+```bash
+# Create the Deployment for the 2nd app
+kubectl create deployment test-app --image=nginx -n prod
+
+# Create the ClusterIP Service for the 2nd app on Port 80
+kubectl expose deployment test-app --port=80 --target-port=80 --name=test-app-service -n prod
+
+```
+
+---
+
+### Step 2: Update Ingress for Path-Based Routing
+
+Now, we modify your `survey-ingress.yaml` to handle both applications. We will tell the Ingress:
+
+* Traffic to `/` goes to your **Survey App**.
+* Traffic to `/test` goes to your **Test App**.
+
+**survey-ingress.yaml**
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: survey-app-ingress
+  namespace: prod
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: survey-app.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: survey-internal-service #
+            port:
+              number: 80                #
+      - path: /test
+        pathType: Prefix
+        backend:
+          service:
+            name: test-app-service
+            port:
+              number: 80
+
+```
+
+**Apply the update:**
+
+```bash
+kubectl apply -f survey-ingress.yaml
+
+```
+
+---
+
+### Step 3: The "Hosts" File Check
+
+Ensure your `/etc/hosts` still has the entry pointing your Minikube IP to `survey-app.com`. If you haven't changed your Minikube IP, you don't need to do anything here.
+
+---
+
+### Step 4: Verify Scenario 2
+
+Now you can test that two different apps are responding on the same URL:
+
+1. **Access App 1 (Survey):** Open `http://survey-app.com/` in your browser. You should see your Spring Boot survey form.
+2. **Access App 2 (Test):** Open `http://survey-app.com/test` in your browser. You should see the "Welcome to nginx!" page.
+
+---
+
+### Why this is a "Senior" Skill
+
+In a real production environment, this is how companies save money and stay organized:
+
+* **Cost Savings:** You only need **one** Cloud Load Balancer (which costs money) to handle dozens of different microservices.
+* **Security:** You only have to manage **one** SSL certificate on the Ingress instead of one for every app.
+* **Simplicity:** Users don't have to remember different ports like `:30002`; everything is just on the standard web port (80).
+
+**Can you see the NGINX welcome page when you visit `/test`?** If so, Scenario 2 is complete! Would you like to try **Host-Based Routing** next (using two different domains like `survey.com` and `test.com`)?
+
+Scenario 3 — Path based routing
+Yes, **Scenario 2** that we just completed actually *was* **Path-based routing**. In Kubernetes, "Scenario 2" and "Path-based routing" are often used interchangeably to describe the same concept: using a single domain name to reach multiple applications by changing the "path" in the URL.
+
+Here is a slow, clear breakdown of what you need to know about it for your project and how it works in real applications.
+
+### 1. What is Path-Based Routing?
+
+Path-based routing is a method where the **Ingress Controller** looks at the part of the URL *after* the domain name (the path) to decide which Service should receive the traffic.
+
+* **URL 1:** `survey-app.com/` → Routing Rule sees `/` → Sends to `survey-internal-service`.
+* **URL 2:** `survey-app.com/test` → Routing Rule sees `/test` → Sends to `test-app-service`.
+
+### 2. Is it the same as Scenario 2?
+
+**Yes.** When you added the second `path` block to your `survey-ingress.yaml`, you implemented Path-based routing. You proved that one Ingress Resource can manage multiple backends.
+
+### 3. Key Technical Detail: The Annotation
+
+In your YAML, you used this line:
+`nginx.ingress.kubernetes.io/rewrite-target: /`
+
+**Why this matters:** Most applications (like NGINX or Spring Boot) expect to be at the "root" (`/`). If a user types `survey-app.com/test`, the Ingress Controller "strips" the `/test` part before handing the request to the `test-app-service`. Without this "Rewrite" rule, the `test-app` would try to look for a folder called `/test` inside its own code, which doesn't exist, resulting in a 404 error.
+
+### 4. How it is used in Real Applications
+
+In professional cloud environments (like Netflix, Spotify, or Amazon), Path-based routing is used for **Microservices**:
+
+* **The Website:** `company.com/` (Managed by a Frontend Team).
+* **The Login:** `company.com/login` (Managed by an Auth Team).
+* **The Search:** `company.com/search` (Managed by a Search Team).
+
+Each of these is a **separate Deployment** and a **separate Service**, but the user never knows. They see one seamless website.
+
+---
+
+### 5. Summary of what you have built
+
+By completing Scenario 2/Path-based routing, you have achieved:
+
+1. **Resource Efficiency:** Two apps sharing one Minikube IP.
+2. **Clean URLs:** No more ports like `:30002`.
+3. **Security:** Using `ClusterIP` to keep your services internal.
+
+**Since you have mastered Path-based routing, would you like to see the alternative, "Host-based routing"?** (This is where you use `survey.com` and `test.com` on the same IP instead of `/test`).
+
+Scenario 4 — Simulate production multi-service system:
+
+To simulate a production multi-service system, we will now update your Ingress to include the **Marketing** service alongside the existing **Survey** and **Test** applications.
+
+### Updated `survey-ingress.yaml`
+
+This YAML appends the `/marketing` path. Notice that it maintains the connection to your `survey-internal-service` on port `80`.
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: survey-app-ingress
+  namespace: prod
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: survey-app.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: survey-internal-service # Points to your ClusterIP service
+            port:
+              number: 80                # Service port
+      - path: /test
+        pathType: Prefix
+        backend:
+          service:
+            name: test-app-service
+            port:
+              number: 80
+      - path: /marketing
+        pathType: Prefix
+        backend:
+          service:
+            name: marketing-service
+            port:
+              number: 80
+
+```
+
+---
+
+### Next Steps to Finalize Scenario 4
+
+#### 1. Create the Marketing App (The "Marketing Team" Deployment)
+
+If you haven't created the underlying pods for marketing yet, run these commands. We use a standard NGINX image to represent a stateless marketing frontend.
+
+```bash
+# Deploy the marketing pods
+kubectl create deployment marketing-service --image=nginx -n prod
+
+# Expose it internally as a ClusterIP service on Port 80
+kubectl expose deployment marketing-service --port=80 --target-port=80 --name=marketing-service -n prod
+
+```
+
+#### 2. Apply the Updated Ingress
+
+Apply the YAML provided above to tell the Ingress Controller about the new path.
+
+```bash
+kubectl apply -f survey-ingress.yaml
+
+```
+
+#### 3. Verify the Routing
+
+Wait about 30 seconds for the NGINX configuration to reload, then test all three "departments" of your system:
+
+* **Main Product:** `http://survey-app.com/` (Should show your Survey App)
+* **Testing Area:** `http://survey-app.com/test` (Should show an NGINX page)
+* **Marketing Page:** `http://survey-app.com/marketing` (Should show an NGINX page)
+
+#### 4. The "Senior" Verification (Internal Traffic Only)
+
+To truly simulate production, verify that your apps are no longer accessible via the high NodePort.
+
+* **Check:** Try to access your app via `minikube ip` and port `30002`.
+* **Goal:** It should ideally be blocked or ignored if you have switched to `ClusterIP`, proving that the Ingress is now the only secure way in.
+
+**Does `http://survey-app.com/marketing` load correctly for you?** Once this is verified, you have successfully built a multi-service production simulation! Would you like to proceed to **Step 18 — Monitoring and Observability**?
+
+Scenario 5 — Ingress failure debugging
+
+A **503 Service Unavailable** error is one of the most common issues you'll face in a production environment. When you run `curl` and see this, it means the **Ingress Controller** (the front door) is working, but it can't find a healthy "room" (Pod) to send the traffic to.
+
+In your specific setup, a 503 usually happens because of the **Health Probes** or the **Service-to-Pod connection**.
+
+---
+
+### 1. Why did you see a 503? (The Root Causes)
+
+* **The "Slow Start" Delay:** You configured your `readinessProbe` with an `initialDelaySeconds: 120`. During those first 2 minutes, Kubernetes considers the pod "Not Ready." If you `curl` during this window, the Ingress has no healthy pods to talk to and returns a 503.
+* **Selector Mismatch:** If the `selector` in your `service-clusterip.yaml` (`app: survey`) doesn't perfectly match the `labels` in your Deployment, the Service stays empty.
+* **The App Crashed:** If the pod is in `CrashLoopBackOff` (like we saw earlier with the 355 restarts), there is no active application to answer the request.
+
+---
+
+### 2. How to Debug an Ingress Failure (The "Senior" Workflow)
+
+When you see that 503, follow this **4-Step Check** to find the "break" in the chain:
+
+#### **Step A: Check the Ingress Rules**
+
+Verify that the Ingress actually sees the backends.
+
+```bash
+kubectl describe ingress survey-app-ingress -n prod
+
+```
+
+* **What to look for:** Look at the `Backends` column. If it says `<error>` or `<none>`, the Ingress can't find your Service.
+
+#### **Step B: Check the Service Endpoints**
+
+This is the most critical check. A Service is just a "pointer"; an **Endpoint** is the actual Pod IP.
+
+```bash
+kubectl get endpoints survey-internal-service -n prod
+
+```
+
+* **The Fix:** If the `ENDPOINTS` list is empty, your Service `selector` is wrong.
+
+#### **Step C: Check Pod Readiness**
+
+```bash
+kubectl get pods -n prod
+
+```
+
+* **What to look for:** If the status is `Running` but `READY` is `0/1`, your **Readiness Probe** is failing. The Ingress will not send traffic to a pod that isn't `1/1 Ready`.
+
+#### **Step D: Check the Controller Logs**
+
+If everything above looks perfect but you still get a 503, the "Security Guard" (NGINX) might be confused.
+
+```bash
+kubectl logs -l app.kubernetes.io/name=ingress-nginx -n ingress-nginx
+
+```
+
+---
+
+### 3. Summary of the Traffic Chain
+
+If any part of this chain breaks, you get an error:
+
+1. **Browser to Ingress:** (Wrong IP/Hosts file? -> Connection Refused)
+2. **Ingress to Service:** (Wrong Service Name? -> 503 error)
+3. **Service to Pod:** (Wrong Selector or Pod Not Ready? -> 503 error)
+
+---
+
+### What to do next
+
+If you are still seeing a 503, run `kubectl get pods -n prod`.
+
+**Is the pod showing `1/1 READY`?** If it is `0/1`, we simply need to wait for your 120-second timer to finish or check the pod logs to see why the Spring Boot app hasn't started yet.
+
+Would you like to try a **"Chaos Test"** where we intentionally break the Service selector to watch the 503 appear and then fix it?
+
 
 

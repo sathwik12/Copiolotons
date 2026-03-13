@@ -1,0 +1,33 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: survey-app-ingress
+  namespace: prod
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: survey-app.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: survey-internal-service # Points to your ClusterIP service
+            port:
+              number: 80                # Service port
+      - path: /test
+        pathType: Prefix
+        backend:
+          service:
+            name: test-app-service
+            port:
+              number: 80
+      - path: /marketing
+        pathType: Prefix
+        backend:
+          service:
+            name: marketing-service
+            port:
+              number: 80
